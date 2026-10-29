@@ -2357,7 +2357,7 @@ public class DroidFish extends Activity
                 DroidFishApp.toast(e.getMessage(), Toast.LENGTH_LONG);
                 return;
             }
-            String authority = "org.petero.droidfish.fileprovider";
+            String authority = getPackageName() + ".fileprovider";
             Uri uri = FileProvider.getUriForFile(this, authority, file);
             i.putExtra(Intent.EXTRA_STREAM, uri);
         }
@@ -2389,7 +2389,7 @@ public class DroidFish extends Activity
             return;
         }
 
-        String authority = "org.petero.droidfish.fileprovider";
+        String authority = getPackageName() + ".fileprovider";
         Uri uri = FileProvider.getUriForFile(this, authority, file);
 
         Intent i = new Intent(Intent.ACTION_SEND);

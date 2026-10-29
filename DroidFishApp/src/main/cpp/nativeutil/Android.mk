@@ -5,7 +5,7 @@ include $(CLEAR_VARS)
 UTIL_SRC_FILES := nativeutil.cpp
 
 CPU_FEATS := cpu_features
-CPU_FEATS_SRC_FILES += $(CPU_FEATS)/src/filesystem.c \
+CPU_FEATS_SRC_FILES := $(CPU_FEATS)/src/filesystem.c \
 			$(CPU_FEATS)/src/stack_line_reader.c \
 			$(CPU_FEATS)/src/string_view.c \
 			$(CPU_FEATS)/src/hwcaps.c \

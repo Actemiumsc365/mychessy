@@ -2,9 +2,10 @@ apply plugin: 'com.android.application'
 
 android {
     compileSdkVersion 28
+    ndkVersion "21.4.7075529"
 
     defaultConfig {
-        applicationId "org.petero.droidfish"
+        applicationId "com.myname.mastermindchess"
         minSdkVersion 16
         targetSdkVersion 28
         versionCode 100
