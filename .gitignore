@@ -13,4 +13,7 @@
 /captures
 .externalNativeBuild
 /release
+**/build/
+/DroidFishApp/libs/
+/DroidFishApp/obj/
 *~

@@ -59,6 +59,7 @@ public interface GUIInterface {
         public ArrayList<Move> bookMoves;
         public String eco;
         public int distToEcoTree;
+        public org.petero.droidfish.gamelogic.MastermindCoach.Evaluation evaluation;
     }
 
     /** Update the computer thinking information. */

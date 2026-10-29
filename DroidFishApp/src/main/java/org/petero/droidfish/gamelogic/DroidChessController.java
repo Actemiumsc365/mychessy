@@ -281,6 +281,19 @@ public class DroidChessController {
         return game.tree.toPGN(pgnOptions);
     }
 
+    public final synchronized Pair<Position, Move> getReviewedMove() {
+        Node current = game.tree.currentNode;
+        if (current.getParent() == null || current.move == null)
+            return null;
+        ArrayList<Node> path = new ArrayList<>();
+        for (Node node = current.getParent(); node.getParent() != null; node = node.getParent())
+            path.add(node);
+        Position before = new Position(game.tree.startPos);
+        for (int index = path.size() - 1; index >= 0; index--)
+            before.makeMove(path.get(index).move, new UndoInfo());
+        return new Pair<>(before, current.move);
+    }
+
     /** Parse a string as FEN or PGN data. */
     public final synchronized void setFENOrPGN(String fenPgn, boolean setModified) throws ChessParseError {
         if (!fenPgn.isEmpty() && fenPgn.charAt(0) == '\ufeff')
@@ -725,9 +738,11 @@ public class DroidChessController {
         private Move ponderMove = null;
         private ArrayList<PvInfo> pvInfoV = new ArrayList<>();
         private int pvInfoSearchId = -1; // Search ID corresponding to pvInfoV
+        private Position pvPosition;
 
         public final void clearSearchInfo(int id) {
             pvInfoSearchId = -1;
+            pvPosition = null;
             ponderMove = null;
             pvInfoV.clear();
             currDepth = 0;
@@ -808,6 +823,13 @@ public class DroidChessController {
             ti.distToEcoTree = distToEcoTree;
             ti.pvMoves = pvMoves;
             ti.bookMoves = bookMoves;
+            if (pvPosition != null && pvInfoSearchId == id && ponderMove == null && !pvInfoV.isEmpty()) {
+                PvInfo best = pvInfoV.get(0);
+                if (!best.pv.isEmpty())
+                    ti.evaluation = new MastermindCoach.Evaluation(TextIO.toFEN(pvPosition),
+                            pvPosition.whiteMove ? best.score : -best.score, best.depth,
+                            best.pv.get(0), !best.isMate && !best.upperBound && !best.lowerBound);
+            }
             latestThinkingInfo = ti;
             gui.runOnUIThread(() -> setThinkingInfo(ti));
         }
@@ -851,6 +873,7 @@ public class DroidChessController {
         @Override
         public void notifyPV(int id, Position pos, ArrayList<PvInfo> pvInfo, Move ponderMove) {
             this.ponderMove = ponderMove;
+            pvPosition = new Position(pos);
             pvInfoSearchId = id;
             pvInfoV = (ArrayList<PvInfo>) pvInfo.clone();
             for (PvInfo pv : pvInfo) {

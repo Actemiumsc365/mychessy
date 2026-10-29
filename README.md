@@ -1,4 +1,74 @@
-# Introduction
+# Mastermind Chess
+
+Personal, offline chess training based on DroidFish. The Android application ID
+is `com.myname.mastermindchess`; the upstream Java packages are unchanged.
+The upstream GPLv3-or-later license and notices remain in place. Keep this fork
+public and provide the corresponding source when distributing APKs.
+
+## Windows command-line build
+
+Use JDK 17 for Gradle 7.2 and Android Gradle Plugin 7.1.1. Android Studio is not
+required. Find your actual SDK location before creating the ignored
+`local.properties` file with `sdk.dir=C:/path/to/Android/Sdk`.
+
+```powershell
+$env:JAVA_HOME = 'C:\Program Files\Java\jdk-17'
+$env:ANDROID_HOME = 'C:\Users\YOUR_USER\AppData\Local\Android\Sdk'
+& "$env:ANDROID_HOME\cmdline-tools\latest\bin\sdkmanager.bat" 'platforms;android-28' 'build-tools;30.0.3' 'ndk;21.4.7075529'
+& "$env:ANDROID_HOME\ndk\21.4.7075529\ndk-build.cmd" -C DroidFishApp NDK_PROJECT_PATH=. APP_BUILD_SCRIPT=src/main/cpp/Android.mk NDK_APPLICATION_MK=src/main/cpp/Application.mk -j8
+.\gradlew.bat assembleDebug
+```
+
+The APK is `DroidFishApp/build/outputs/apk/debug/DroidFishApp-debug.apk`.
+This source revision uses `src/main/cpp`, not a `jni` directory. Stockfish and
+the tablebase helpers remain compiled native code; upstream CuckooChess is Java,
+not an interpreted or C++ engine. Gradle also runs the native build automatically.
+Launcher bitmaps can be regenerated with `tools/New-LauncherIcons.ps1`.
+
+The universal debug APK is approximately 64 MiB (67 MB), above the requested
+25-35 MB target. The large bundled Stockfish NNUE network alone compresses to
+about 55.8 MB. Reaching the smaller target requires a separately validated
+smaller engine/network combination or a different distribution strategy; the
+required network is deliberately not removed and no padding is added.
+
+## Training
+
+Switch to analysis mode and open **Mastermind Training** in the left drawer,
+or in the analysis text's long-press menu.
+
+* **Explain recommended move** describes verified move features such as
+  captures, checks, promotion, castling, and central destinations. It does not
+  pretend to reproduce the engine's full reasoning or use an online AI service.
+* **Record reviewed move** saves a finding for the move immediately preceding
+  the displayed position. In this session, analyze both the position before
+  your move and the position after it to depth 12 or higher, then record it.
+  Only exact non-mate scores with a loss of at least 100 centipawns qualify.
+  Scores are normalized to White regardless of the display score setting.
+  Changes of engine clear the analysis cache. This is explicit position review,
+  not an automatic whole-game analyzer. Choose your own moves when recording.
+* **Recurring mistakes** groups unique reviewed position/move pairs by the
+  kind of move played and shows recent recommendations and estimated losses.
+  Categories describe the move, not a proven tactical or strategic diagnosis.
+* **Add opening drills from this game** uses the loaded PGN's main line and
+  your selected color, up to move 12, from the standard starting position.
+  Repeat this for your saved games. Answers reproduce your played moves;
+  they are not claims of optimal opening play. No account or game scraping is used.
+* **Practice openings** uses a separate board with move entry, checking,
+  reveal, and next controls; it never edits your loaded game.
+* **Clear training data** deletes the saved findings and drills after confirmation.
+
+Training data uses app-private preferences, bounded to 500 findings and 240
+drills; the in-session analysis cache is bounded to 256 positions. No service,
+overlay, accessibility automation, or engine-move forwarding to online games
+is added. Never use engine assistance during live Lichess or Chess.com games.
+
+```powershell
+.\gradlew.bat :DroidFishApp:testDebugUnitTest --tests org.petero.droidfish.gamelogic.MastermindCoachTest
+$env:ANDROID_SERIAL = 'YOUR_DEVICE_SERIAL'
+.\gradlew.bat :DroidFishApp:connectedDebugAndroidTest '-Pandroid.testInstrumentationRunnerArguments.class=org.petero.droidfish.MastermindStoreTest'
+```
+
+# Upstream Introduction
 
 *DroidFish* is a feature-rich graphical chess user interface, combined with
 the very strong *Stockfish* chess engine.

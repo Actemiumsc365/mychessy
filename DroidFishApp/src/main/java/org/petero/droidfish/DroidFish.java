@@ -155,6 +155,7 @@ public class DroidFish extends Activity
                                   ActivityCompat.OnRequestPermissionsResultCallback {
     private ChessBoardPlay cb;
     DroidChessController ctrl = null;
+    private MastermindPanel mastermindPanel;
     private boolean mShowThinking;
     private boolean mShowStats;
     private boolean fullPVLines;
@@ -1455,6 +1456,7 @@ public class DroidFish extends Activity
         EDIT_BOARD,
         SETTINGS,
         FILE_MENU,
+        MASTERMIND,
         RESIGN,
         FORCE_MOVE,
         DRAW,
@@ -1475,6 +1477,7 @@ public class DroidFish extends Activity
             new DrawerItem(DrawerItemId.SET_STRENGTH, R.string.set_engine_strength),
             new DrawerItem(DrawerItemId.EDIT_BOARD, R.string.option_edit_board),
             new DrawerItem(DrawerItemId.FILE_MENU, R.string.option_file),
+            new DrawerItem(DrawerItemId.MASTERMIND, R.string.mastermind_training),
             new DrawerItem(DrawerItemId.SELECT_BOOK, R.string.option_select_book),
             new DrawerItem(DrawerItemId.MANAGE_ENGINES, R.string.option_manage_engines),
             new DrawerItem(DrawerItemId.SET_COLOR_THEME, R.string.option_color_theme),
@@ -1519,6 +1522,9 @@ public class DroidFish extends Activity
         setAutoMode(AutoMode.OFF);
 
         switch (id) {
+        case MASTERMIND:
+            mastermind().show();
+            break;
         case NEW_GAME:
             showDialog(NEW_GAME_DIALOG);
             break;
@@ -1902,6 +1908,8 @@ public class DroidFish extends Activity
 
     @Override
     public void setThinkingInfo(ThinkingInfo ti) {
+        if (gameMode.analysisMode() && ti.evaluation != null)
+            mastermind().onEvaluation(ti.evaluation);
         thinkingStr1 = ti.pvStr;
         thinkingStr2 = ti.statStr;
         bookInfoStr = ti.bookInfo;
@@ -2940,6 +2948,12 @@ public class DroidFish extends Activity
         builder.show();
     }
 
+    private MastermindPanel mastermind() {
+        if (mastermindPanel == null)
+            mastermindPanel = new MastermindPanel(this, ctrl);
+        return mastermindPanel;
+    }
+
     private Dialog thinkingMenuDialog() {
         final int ADD_ANALYSIS      = 0;
         final int COPY_TO_CLIPBOARD = 1;
@@ -2948,6 +2962,7 @@ public class DroidFish extends Activity
         final int TRUNCATE_VARS     = 4;
         final int HIDE_STATISTICS   = 5;
         final int SHOW_STATISTICS   = 6;
+        final int MASTERMIND        = 7;
         List<String> lst = new ArrayList<>();
         final List<Integer> actions = new ArrayList<>();
         lst.add(getString(R.string.add_analysis));      actions.add(ADD_ANALYSIS);
@@ -2955,6 +2970,7 @@ public class DroidFish extends Activity
         int numPV = this.numPV;
         final int maxPV = ctrl.maxPV();
         if (gameMode.analysisMode()) {
+            lst.add(getString(R.string.mastermind_training)); actions.add(MASTERMIND);
             numPV = Math.min(Math.max(numPV, 1), maxPV);
             if (maxPV > 1) {
                 lst.add(getString(R.string.num_variations)); actions.add(MULTIPV_SET);
@@ -2977,6 +2993,9 @@ public class DroidFish extends Activity
         builder.setTitle(R.string.analysis);
         builder.setItems(lst.toArray(new String[0]), (dialog, item) -> {
             switch (actions.get(item)) {
+            case MASTERMIND:
+                mastermind().show();
+                break;
             case ADD_ANALYSIS: {
                 ArrayList<ArrayList<Move>> pvMovesTmp = pvMoves;
                 String[] pvStrs = thinkingStr1.split("\n");
@@ -3664,6 +3683,8 @@ public class DroidFish extends Activity
 
     @Override
     public void reportEngineName(String engine) {
+        if (mastermindPanel != null)
+            mastermindPanel.clearEvaluations();
         String msg = String.format(Locale.US, "%s: %s",
                                    getString(R.string.engine), engine);
         DroidFishApp.toast(msg, Toast.LENGTH_SHORT);
