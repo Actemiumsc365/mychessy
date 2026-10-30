@@ -25,7 +25,7 @@ the tablebase helpers remain compiled native code; upstream CuckooChess is Java,
 not an interpreted or C++ engine. Gradle also runs the native build automatically.
 Launcher bitmaps can be regenerated with `tools/New-LauncherIcons.ps1`.
 
-The universal debug APK is approximately 64 MiB (67 MB), above the requested
+The universal debug APK is approximately 66 MiB (69 MB), above the requested
 25-35 MB target. The large bundled Stockfish NNUE network alone compresses to
 about 55.8 MB. Reaching the smaller target requires a separately validated
 smaller engine/network combination or a different distribution strategy; the
