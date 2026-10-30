@@ -35,9 +35,9 @@ ifeq ($(TARGET_ARCH_ABI),arm64-v8a)
 endif
 
 ifeq ($(TARGET_ARCH_ABI),armeabi-v7a)
-  MY_ARCH_DEF := -mthumb -march=armv7-a -mfloat-abi=softfp
+  MY_ARCH_DEF := -mthumb -march=armv7-a -mfloat-abi=softfp -mfpu=neon
   include $(CLEAR_VARS)
-  LOCAL_ARM_NEON  := false
+  LOCAL_ARM_NEON  := true
   LOCAL_MODULE    := stockfish_nosimd
   include $(LOCAL_PATH)/build_sf.mk
   stockfish : stockfish_nosimd

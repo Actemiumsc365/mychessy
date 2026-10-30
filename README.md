@@ -14,15 +14,17 @@ required. Find your actual SDK location before creating the ignored
 ```powershell
 $env:JAVA_HOME = 'C:\Program Files\Java\jdk-17'
 $env:ANDROID_HOME = 'C:\Users\YOUR_USER\AppData\Local\Android\Sdk'
-& "$env:ANDROID_HOME\cmdline-tools\latest\bin\sdkmanager.bat" 'platforms;android-28' 'build-tools;30.0.3' 'ndk;21.4.7075529'
-& "$env:ANDROID_HOME\ndk\21.4.7075529\ndk-build.cmd" -C DroidFishApp NDK_PROJECT_PATH=. APP_BUILD_SCRIPT=src/main/cpp/Android.mk NDK_APPLICATION_MK=src/main/cpp/Application.mk -j8
+& "$env:ANDROID_HOME\cmdline-tools\latest\bin\sdkmanager.bat" 'platforms;android-28' 'build-tools;30.0.3' 'ndk;28.2.13676358'
+& "$env:ANDROID_HOME\ndk\28.2.13676358\ndk-build.cmd" -C DroidFishApp NDK_PROJECT_PATH=. APP_BUILD_SCRIPT=src/main/cpp/Android.mk NDK_APPLICATION_MK=src/main/cpp/Application.mk -j8
 .\gradlew.bat assembleDebug
 ```
 
 The APK is `DroidFishApp/build/outputs/apk/debug/DroidFishApp-debug.apk`.
 This source revision uses `src/main/cpp`, not a `jni` directory. Stockfish and
 the tablebase helpers remain compiled native code; upstream CuckooChess is Java,
-not an interpreted or C++ engine. Gradle also runs the native build automatically.
+not an interpreted or C++ engine. NDK r28 also emits native shared libraries
+with 16 KB ELF page alignment for modern Android devices. Gradle runs the native
+build automatically.
 Launcher bitmaps can be regenerated with `tools/New-LauncherIcons.ps1`.
 
 The universal debug APK is approximately 64 MiB (67 MB), above the requested

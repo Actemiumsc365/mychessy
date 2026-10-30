@@ -1251,6 +1251,8 @@ public class DroidChessController {
     }
 
     private synchronized void setThinkingInfo(ThinkingInfo ti) {
+        if (game == null)
+            return;
         if ((ti.id == searchId) && (ti == latestThinkingInfo)) {
             ti.checkmateOnly = checkmateOnly();
             ti.positionFen = getFEN();

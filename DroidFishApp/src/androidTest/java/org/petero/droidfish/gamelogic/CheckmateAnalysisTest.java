@@ -63,6 +63,24 @@ public class CheckmateAnalysisTest extends TestCase {
         return null;
     }
 
+    public void testPreferenceCallbackBeforeNewGameDoesNotCrash() {
+        GUIInterface gui = (GUIInterface)Proxy.newProxyInstance(GUIInterface.class.getClassLoader(),
+                new Class<?>[] { GUIInterface.class }, (proxy, method, arguments) -> {
+                    if (method.getName().equals("runOnUIThread"))
+                        ((Runnable)arguments[0]).run();
+                    if (method.getReturnType() == boolean.class)
+                        return false;
+                    return null;
+                });
+        PgnToken.PgnTokenReceiver tokens = (PgnToken.PgnTokenReceiver)Proxy.newProxyInstance(
+                PgnToken.PgnTokenReceiver.class.getClassLoader(),
+                new Class<?>[] { PgnToken.PgnTokenReceiver.class }, (proxy, method, arguments) ->
+                        method.getReturnType() == boolean.class ? Boolean.TRUE : null);
+        DroidChessController initializingController = new DroidChessController(gui, tokens, new PGNOptions());
+
+        initializingController.prefsChanged(false);
+    }
+
     public void testNativeMateSearchAndNormalAnalysisRestoration() throws Exception {
         assertFalse(controller.checkmateOnly());
         controller.setMultiPVMode(3);
@@ -88,6 +106,19 @@ public class CheckmateAnalysisTest extends TestCase {
         controller.setFENOrPGN("7k/6Q1/6K1/8/8/8/8/8 b - - 1 1", false);
         GUIInterface.ThinkingInfo terminal = await(controller.getFEN(), true);
         assertNull(terminal.mateResult);
+    }
+
+    public void testNormalAnalysisRestartsAfterSeveralPlayedMoves() throws Exception {
+        String[] moves = { "e4", "e5", "Nf3", "Nc6", "Bb5" };
+        for (String moveText : moves) {
+            Position position = TextIO.readFEN(controller.getFEN());
+            Move move = TextIO.stringToMove(position, moveText);
+            assertNotNull("Expected legal move " + moveText, move);
+            controller.makeHumanMove(move, false);
+            GUIInterface.ThinkingInfo info = await(controller.getFEN(), false);
+            assertNotNull("Expected a fresh engine evaluation after " + moveText, info.evaluation);
+            assertFalse("Expected a fresh principal variation after " + moveText, info.pvMoves.isEmpty());
+        }
     }
 
     public void testMateModeTemporarilyUsesStockfishWithoutReplacingSelectedEngine() throws Exception {
