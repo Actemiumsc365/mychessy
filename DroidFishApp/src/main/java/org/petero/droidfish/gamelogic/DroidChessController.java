@@ -63,6 +63,7 @@ public class DroidChessController {
 
     private String engine = "";
     private int numPV = 1;
+    private boolean checkmateOnly;
 
     private SearchListener listener;
     private boolean guiPaused = false;
@@ -622,6 +623,18 @@ public class DroidChessController {
         return computerPlayer.getMaxPV();
     }
 
+    public final synchronized boolean checkmateOnly() {
+        return checkmateOnly && gameMode.analysisMode();
+    }
+
+    public final synchronized void setCheckmateOnly(boolean enabled) {
+        if (checkmateOnly == enabled)
+            return;
+        checkmateOnly = enabled;
+        if (gameMode.analysisMode())
+            restartSearch();
+    }
+
     /** Set multi-PV mode. */
     public final synchronized void setMultiPVMode(int numPV) {
         int clampedNumPV = Math.min(numPV, maxPV());
@@ -739,10 +752,14 @@ public class DroidChessController {
         private ArrayList<PvInfo> pvInfoV = new ArrayList<>();
         private int pvInfoSearchId = -1; // Search ID corresponding to pvInfoV
         private Position pvPosition;
+        private CheckmateSearch.Result mateResult;
+        private boolean mateSearchComplete;
 
         public final void clearSearchInfo(int id) {
             pvInfoSearchId = -1;
             pvPosition = null;
+            mateResult = null;
+            mateSearchComplete = false;
             ponderMove = null;
             pvInfoV.clear();
             currDepth = 0;
@@ -823,6 +840,8 @@ public class DroidChessController {
             ti.distToEcoTree = distToEcoTree;
             ti.pvMoves = pvMoves;
             ti.bookMoves = bookMoves;
+            ti.mateResult = mateResult;
+            ti.mateSearchComplete = mateSearchComplete;
             if (pvPosition != null && pvInfoSearchId == id && ponderMove == null && !pvInfoV.isEmpty()) {
                 PvInfo best = pvInfoV.get(0);
                 if (!best.pv.isEmpty())
@@ -906,6 +925,17 @@ public class DroidChessController {
             }
             whiteMove = pos.whiteMove ^ (ponderMove != null);
 
+            if (checkmateOnly && ponderMove == null && !pvInfoV.isEmpty()) {
+                PvInfo best = pvInfoV.get(0);
+                mateResult = CheckmateSearch.select(mateResult, pos, best.isMate, best.score,
+                        best.upperBound || best.lowerBound, best.pv);
+            }
+            setSearchInfo(id);
+        }
+
+        @Override
+        public void notifyAnalysisComplete(int id) {
+            mateSearchComplete = true;
             setSearchInfo(id);
         }
 
@@ -1015,6 +1045,8 @@ public class DroidChessController {
         if (!analysis && !(computersTurn || ponder))
             computerPlayer.stopSearch();
         listener.clearSearchInfo(searchId);
+        if (checkmateOnly() && !alive)
+            listener.notifyAnalysisComplete(searchId);
         updateBookHints();
         if (!computerPlayer.sameSearchId(searchId)) {
             if (analysis) {
@@ -1022,7 +1054,8 @@ public class DroidChessController {
                 SearchRequest sr = SearchRequest.analyzeRequest(
                         searchId, ph.first, ph.second,
                         new Position(game.currPos()),
-                        game.haveDrawOffer(), engine, numPV);
+                        game.haveDrawOffer(), checkmateOnly ? "stockfish" : engine, checkmateOnly ? 1 : numPV);
+                    sr.checkmateOnly = checkmateOnly;
                 computerPlayer.queueAnalyzeRequest(sr);
             } else if (computersTurn || ponder) {
                 listener.clearSearchInfo(searchId);
@@ -1218,8 +1251,11 @@ public class DroidChessController {
     }
 
     private synchronized void setThinkingInfo(ThinkingInfo ti) {
-        if ((ti.id == searchId) && (ti == latestThinkingInfo))
+        if ((ti.id == searchId) && (ti == latestThinkingInfo)) {
+            ti.checkmateOnly = checkmateOnly();
+            ti.positionFen = getFEN();
             gui.setThinkingInfo(ti);
+        }
     }
 
     private void updateMoveList() {

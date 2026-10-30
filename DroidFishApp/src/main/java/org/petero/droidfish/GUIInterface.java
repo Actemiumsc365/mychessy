@@ -60,6 +60,10 @@ public interface GUIInterface {
         public String eco;
         public int distToEcoTree;
         public org.petero.droidfish.gamelogic.MastermindCoach.Evaluation evaluation;
+        public boolean checkmateOnly;
+        public boolean mateSearchComplete;
+        public String positionFen;
+        public org.petero.droidfish.gamelogic.CheckmateSearch.Result mateResult;
     }
 
     /** Update the computer thinking information. */

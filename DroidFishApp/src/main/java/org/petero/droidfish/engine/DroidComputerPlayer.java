@@ -103,6 +103,7 @@ public class DroidComputerPlayer {
 
         boolean isSearch;       // True if regular search or ponder search
         boolean isAnalyze;      // True if analysis search
+        public boolean checkmateOnly;
         int wTime;              // White remaining time, milliseconds
         int bTime;              // Black remaining time, milliseconds
         int wInc;               // White time increment per move, milliseconds
@@ -681,7 +682,7 @@ public class DroidComputerPlayer {
             uciEngine.writeLineToEngine(posStr.toString());
             uciEngine.setOption("UCI_AnalyseMode", true);
             StringBuilder goStr = new StringBuilder(96);
-            goStr.append("go infinite");
+            goStr.append(org.petero.droidfish.gamelogic.CheckmateSearch.command(sr.checkmateOnly));
             if (sr.searchMoves != null) {
                 goStr.append(" searchmoves");
                 for (Move m : sr.searchMoves) {
@@ -803,8 +804,16 @@ public class DroidComputerPlayer {
                     if (engineState.state == MainState.SEARCH)
                         reportMove(bestMove, nextPonderMove);
 
+                    boolean mateAnalysis = engineState.state == MainState.ANALYZE &&
+                            searchRequest != null && searchRequest.checkmateOnly;
+                    if (mateAnalysis) {
+                        lastGUIUpdate = 0;
+                        notifyGUI();
+                    }
                     engineState.setState(MainState.IDLE);
                     searchRequest = null;
+                    if (mateAnalysis)
+                        listener.notifyAnalysisComplete(engineState.searchId);
                     handleIdleState();
                 }
             }

@@ -7,6 +7,7 @@ import android.text.InputType;
 import android.util.Pair;
 import android.view.MotionEvent;
 import android.widget.EditText;
+import android.widget.CheckBox;
 import android.widget.LinearLayout;
 import android.widget.ScrollView;
 import android.widget.TextView;
@@ -28,6 +29,7 @@ final class MastermindPanel {
     private final MastermindStore store;
     private final LinkedHashMap<String, MastermindCoach.Evaluation> evaluations = new LinkedHashMap<>();
     private MastermindCoach.Evaluation latest;
+    private GUIInterface.ThinkingInfo mateThinking;
     private int drillIndex;
 
     MastermindPanel(Activity activity, DroidChessController controller) {
@@ -54,6 +56,11 @@ final class MastermindPanel {
     void clearEvaluations() {
         evaluations.clear();
         latest = null;
+        mateThinking = null;
+    }
+
+    void onMateThinking(GUIInterface.ThinkingInfo thinking) {
+        mateThinking = thinking;
     }
 
     void show() {
@@ -63,7 +70,12 @@ final class MastermindPanel {
         }
         String[] actions = { "Explain recommended move", "Record reviewed move", "Recurring mistakes",
                 "Add opening drills from this game", "Practice openings", "Clear training data" };
+        CheckBox mateOnly = new CheckBox(activity);
+        mateOnly.setText(R.string.checkmate_only_suggestions);
+        mateOnly.setChecked(controller.checkmateOnly());
+        mateOnly.setOnCheckedChangeListener((button, checked) -> controller.setCheckmateOnly(checked));
         new AlertDialog.Builder(activity).setTitle(R.string.mastermind_training)
+            .setView(mateOnly)
                 .setItems(actions, (dialog, selected) -> {
                     switch (selected) {
                     case 0: explain(); break;
@@ -77,6 +89,24 @@ final class MastermindPanel {
     }
 
     private void explain() {
+        if (controller.checkmateOnly()) {
+            if (mateThinking == null || !controller.getFEN().equals(mateThinking.positionFen) ||
+                !mateThinking.mateSearchComplete) {
+                message("Move explanation", activity.getString(R.string.searching_for_checkmate));
+            } else if (mateThinking.mateResult == null) {
+                message("Move explanation", org.petero.droidfish.gamelogic.CheckmateSearch.NO_MATE);
+            } else {
+                try {
+                    message("Move explanation", "Mate in " + mateThinking.mateResult.distance + ": " +
+                            mateThinking.mateResult.line + "\n\n" +
+                            MastermindCoach.explain(TextIO.readFEN(mateThinking.positionFen),
+                                    mateThinking.mateResult.moves.get(0)));
+                } catch (ChessParseError exception) {
+                    message("Move explanation", "This analysis position is no longer available.");
+                }
+            }
+            return;
+        }
         if (latest == null || !latest.fen.equals(controller.getFEN())) {
             message("Move explanation", "No engine analysis for this position yet.");
             return;
@@ -89,6 +119,10 @@ final class MastermindPanel {
     }
 
     private void record() {
+        if (controller.checkmateOnly()) {
+            message("Reviewed move", "Centipawn-loss review is available with Checkmate-only suggestions turned off.");
+            return;
+        }
         Pair<Position, Move> reviewed = controller.getReviewedMove();
         if (reviewed == null) {
             message("Reviewed move", "No previous move in this game.");

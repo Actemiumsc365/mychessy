@@ -87,4 +87,6 @@ public interface SearchListener {
 
     /** Report that engine has been initialized. */
     void notifyEngineInitialized();
+
+    default void notifyAnalysisComplete(int id) { }
 }

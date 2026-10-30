@@ -25,7 +25,7 @@ the tablebase helpers remain compiled native code; upstream CuckooChess is Java,
 not an interpreted or C++ engine. Gradle also runs the native build automatically.
 Launcher bitmaps can be regenerated with `tools/New-LauncherIcons.ps1`.
 
-The universal debug APK is approximately 66 MiB (69 MB), above the requested
+The universal debug APK is approximately 64 MiB (67 MB), above the requested
 25-35 MB target. The large bundled Stockfish NNUE network alone compresses to
 about 55.8 MB. Reaching the smaller target requires a separately validated
 smaller engine/network combination or a different distribution strategy; the
@@ -35,6 +35,22 @@ required network is deliberately not removed and no padding is added.
 
 Switch to analysis mode and open **Mastermind Training** in the left drawer,
 or in the analysis text's long-press menu.
+
+The **Checkmate-only suggestions** checkbox is off by default. When enabled,
+analysis temporarily uses bundled native Stockfish with MultiPV 1 and
+`go mate 64 movetime 2500`. It accepts only exact, positive mate scores for the
+side to move, verifies that the complete principal variation is legal and ends
+in checkmate, and retains the shortest validated mating line found. While
+searching, normal best moves, book suggestions, and variation arrows are hidden.
+If the search finishes without a qualifying line, the analysis panel and move
+explanation display **No forced checkmate in this position**. Turning the checkbox
+off restores normal analysis, the selected engine, and the previous MultiPV setting.
+Centipawn-loss recording is available with the checkbox off; the other training
+actions remain available.
+
+A 2.5-second, mate-in-64-bounded search is not an exhaustive mathematical proof:
+the no-mate message means no qualifying mate was found within that search, and
+the shortest line found is not a guarantee of the globally shortest possible mate.
 
 * **Explain recommended move** describes verified move features such as
   captures, checks, promotion, castling, and central destinations. It does not
@@ -67,6 +83,14 @@ is added. Never use engine assistance during live Lichess or Chess.com games.
 $env:ANDROID_SERIAL = 'YOUR_DEVICE_SERIAL'
 .\gradlew.bat :DroidFishApp:connectedDebugAndroidTest '-Pandroid.testInstrumentationRunnerArguments.class=org.petero.droidfish.MastermindStoreTest'
 ```
+
+The full regression commands are `gradlew.bat test assembleDebug` and
+`gradlew.bat :DroidFishApp:connectedDebugAndroidTest`. The existing `ProbeTest`
+requires external Syzygy WDL/DTZ files under `/sdcard/DroidFish/rtb`, including
+`KNPvKB`, `KNNvKP`, `KBvKP`, `KNvKP`, `KNNvK`, and `KPvK`, plus read access to
+external storage. These are test-device fixtures and are not bundled in the APK.
+`CheckmateAnalysisTest` exercises native mate search, centipawn rejection,
+terminal positions, and restoration of normal analysis/engine selection.
 
 # Upstream Introduction
 

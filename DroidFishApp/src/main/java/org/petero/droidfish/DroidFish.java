@@ -1905,10 +1905,14 @@ public class DroidFish extends Activity
     private ArrayList<ArrayList<Move>> pvMoves = new ArrayList<>();
     private ArrayList<Move> bookMoves = null;
     private ArrayList<Move> variantMoves = null;
+    private ThinkingInfo mateThinking;
 
     @Override
     public void setThinkingInfo(ThinkingInfo ti) {
-        if (gameMode.analysisMode() && ti.evaluation != null)
+        mateThinking = ti.checkmateOnly ? ti : null;
+        if (ti.checkmateOnly)
+            mastermind().onMateThinking(ti);
+        if (!ti.checkmateOnly && gameMode.analysisMode() && ti.evaluation != null)
             mastermind().onEvaluation(ti.evaluation);
         thinkingStr1 = ti.pvStr;
         thinkingStr2 = ti.statStr;
@@ -1916,6 +1920,13 @@ public class DroidFish extends Activity
         ecoInfoStr = ti.eco;
         distToEcoTree = ti.distToEcoTree;
         pvMoves = ti.pvMoves;
+        if (ti.checkmateOnly) {
+            pvMoves = new ArrayList<>();
+            if (ti.mateSearchComplete && ti.mateResult != null)
+                pvMoves.add(ti.mateResult.moves);
+            thinkingStr1 = ti.mateResult == null ? "" : "Mate in " + ti.mateResult.distance + ": " + ti.mateResult.line;
+            thinkingStr2 = "";
+        }
         bookMoves = ti.bookMoves;
         updateThinkingInfo();
 
@@ -1939,6 +1950,18 @@ public class DroidFish extends Activity
     }
 
     private void updateThinkingInfo() {
+        if (ctrl != null && ctrl.checkmateOnly()) {
+            boolean matching = mateThinking != null && ctrl.getFEN().equals(mateThinking.positionFen);
+            boolean complete = matching && mateThinking.mateSearchComplete;
+            boolean found = complete && mateThinking.mateResult != null;
+            thinking.setText(!complete ? getString(R.string.searching_for_checkmate) :
+                found ? "Mate in " + mateThinking.mateResult.distance + ": " + mateThinking.mateResult.line :
+                org.petero.droidfish.gamelogic.CheckmateSearch.NO_MATE);
+            thinking.setVisibility(View.VISIBLE);
+            cb.setMoveHints(found ? mateThinking.mateResult.moves.subList(0,
+                Math.min(maxNumArrows, mateThinking.mateResult.moves.size())) : null);
+            return;
+        }
         boolean thinkingEmpty = true;
         {
             StringBuilder sb = new StringBuilder(128);
