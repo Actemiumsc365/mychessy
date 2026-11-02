@@ -260,6 +260,27 @@ public class DroidChessController {
         }
     }
 
+    public final synchronized void restoreGame(byte[] data, int version, GameMode mode)
+            throws IOException, ChessParseError {
+        Game restored = new Game(gameTextListener, game.timeController.tcData);
+        try (DataInputStream input = new DataInputStream(new ByteArrayInputStream(data))) {
+            restored.readFromStream(input, version);
+            restored.tree.translateMoves();
+        }
+        abortSearch();
+        Game previous = game;
+        game = restored;
+        gameMode = mode;
+        searchId++;
+        gameTextListener.clear();
+        computerPlayer.uciNewGame();
+        updateGameMode();
+        updateComputeThreads();
+        setSelection();
+        updateGUI();
+        autoSaveOldGame(previous, game.treeHashSignature);
+    }
+
     /** Serialize to byte array. */
     public final synchronized byte[] toByteArray() {
         try (ByteArrayOutputStream baos = new ByteArrayOutputStream(32768);
@@ -624,14 +645,19 @@ public class DroidChessController {
     }
 
     public final synchronized boolean checkmateOnly() {
-        return checkmateOnly && gameMode.analysisMode();
+        return checkmateOnly && (gameMode.analysisMode() || humanHintMode());
+    }
+
+    private boolean humanHintMode() {
+        return game != null && checkmateOnly &&
+                gameMode.playerWhite() != gameMode.playerBlack() && humansTurn();
     }
 
     public final synchronized void setCheckmateOnly(boolean enabled) {
         if (checkmateOnly == enabled)
             return;
         checkmateOnly = enabled;
-        if (gameMode.analysisMode())
+        if (gameMode.analysisMode() || gameMode.playerWhite() != gameMode.playerBlack())
             restartSearch();
     }
 
@@ -847,7 +873,7 @@ public class DroidChessController {
                 if (!best.pv.isEmpty())
                     ti.evaluation = new MastermindCoach.Evaluation(TextIO.toFEN(pvPosition),
                             pvPosition.whiteMove ? best.score : -best.score, best.depth,
-                            best.pv.get(0), !best.isMate && !best.upperBound && !best.lowerBound);
+                            best.pv.get(0), !best.isMate && !best.upperBound && !best.lowerBound, best.pv);
             }
             latestThinkingInfo = ti;
             gui.runOnUIThread(() -> setThinkingInfo(ti));
@@ -1039,7 +1065,7 @@ public class DroidChessController {
     /** Start/stop computer thinking/analysis as appropriate. */
     private void updateComputeThreads() {
         boolean alive = game.tree.getGameState() == GameState.ALIVE;
-        boolean analysis = gameMode.analysisMode() && alive;
+        boolean analysis = (gameMode.analysisMode() || humanHintMode()) && alive;
         boolean computersTurn = !humansTurn() && alive;
         boolean ponder = gui.ponderMode() && !analysis && !computersTurn && (ponderMove != null) && alive;
         if (!analysis && !(computersTurn || ponder))
@@ -1081,7 +1107,7 @@ public class DroidChessController {
                         game.haveDrawOffer(),
                         wTime, bTime, wInc, bInc, movesToGo,
                         gui.ponderMode(), fPonderMove,
-                        engine, getEloToUse());
+                        engine, "stockfish".equals(engine) ? Integer.MAX_VALUE : getEloToUse());
                 computerPlayer.queueSearchRequest(sr);
             } else {
                 computerPlayer.queueStartEngine(searchId, engine);

@@ -33,52 +33,83 @@ about 55.8 MB. Reaching the smaller target requires a separately validated
 smaller engine/network combination or a different distribution strategy; the
 required network is deliberately not removed and no padding is added.
 
-## Training
+## Play And Analysis
 
-Switch to analysis mode and open **Mastermind Training** in the left drawer,
-or in the analysis text's long-press menu.
+The main drawer contains **New Game**, **Play White**, **Play Black**,
+**Analysis**, **Best continuation**, **Coach & games**, and **Appearance**. Play actions resume the current
+position against bundled Stockfish at full strength. Random opening-book
+moves are disabled; the engine searches for its moves using the game clock.
 
-The **Checkmate-only suggestions** checkbox is off by default. When enabled,
-analysis temporarily uses bundled native Stockfish with MultiPV 1 and
-`go mate 64 movetime 2500`. It accepts only exact, positive mate scores for the
-side to move, verifies that the complete principal variation is legal and ends
-in checkmate, and retains the shortest validated mating line found. While
-searching, normal best moves, book suggestions, and variation arrows are hidden.
-If the search finishes without a qualifying line, the analysis panel and move
-explanation display **No forced checkmate in this position**. Turning the checkbox
-off restores normal analysis, the selected engine, and the previous MultiPV setting.
-Centipawn-loss recording is available with the checkbox off; the other training
-actions remain available.
+In **Play White** or **Play Black**, the engine also analyzes your position on
+your turn and shows a recommended move and arrow. After you move, it switches
+to playing the opponent, then resumes hints for your next turn. Opening
+**Best continuation** does not change your play mode. **Analysis** remains a
+separate board-review mode where you can move both sides; it is not required
+for hints during a game.
 
-A 2.5-second, mate-in-64-bounded search is not an exhaustive mathematical proof:
-the no-mate message means no qualifying mate was found within that search, and
-the shortest line found is not a guarantee of the globally shortest possible mate.
+**Appearance** contains a fullscreen switch and four previewed themes:
+Classic, Forest, Graphite, and Paper. Choices are saved automatically.
+Fullscreen hides the status and navigation bars; an edge swipe temporarily
+reveals the system controls. Narrow windows keep the stacked board layout.
+At 600dp of available width, the board and scrollable move/hint panels use
+a side-by-side layout, including an unfolded phone's portrait inner screen.
+Configuration changes rebuild the views without resetting the current
+position, player side, board selection, or engine controller.
 
-* **Explain recommended move** describes verified move features such as
-  captures, checks, promotion, castling, and central destinations. It does not
-  pretend to reproduce the engine's full reasoning or use an online AI service.
-* **Record reviewed move** saves a finding for the move immediately preceding
-  the displayed position. In this session, analyze both the position before
-  your move and the position after it to depth 12 or higher, then record it.
-  Only exact non-mate scores with a loss of at least 100 centipawns qualify.
-  Scores are normalized to White regardless of the display score setting.
-  Changes of engine clear the analysis cache. This is explicit position review,
-  not an automatic whole-game analyzer. Choose your own moves when recording.
-* **Recurring mistakes** groups unique reviewed position/move pairs by the
-  kind of move played and shows recent recommendations and estimated losses.
-  Categories describe the move, not a proven tactical or strategic diagnosis.
-* **Add opening drills from this game** uses the loaded PGN's main line and
-  your selected color, up to move 12, from the standard starting position.
-  Repeat this for your saved games. Answers reproduce your played moves;
-  they are not claims of optimal opening play. No account or game scraping is used.
-* **Practice openings** uses a separate board with move entry, checking,
-  reveal, and next controls; it never edits your loaded game.
-* **Clear training data** deletes the saved findings and drills after confirmation.
+Analysis uses Stockfish with MultiPV 1 and `go infinite`, without the old
+2.5-second mate-search cutoff. The strongest available line remains visible
+while the search deepens. Exact positive mate scores are accepted only when
+the complete line is legal and ends in checkmate. A validated mating line is
+shown immediately, without waiting for analysis to finish. Its first move
+is highlighted on the board.
 
-Training data uses app-private preferences, bounded to 500 findings and 240
-drills; the in-session analysis cache is bounded to 256 positions. No service,
-overlay, accessibility automation, or engine-move forwarding to online games
-is added. Never use engine assistance during live Lichess or Chess.com games.
+**Best continuation** shows a concrete move, expected best reply, and further
+continuation from the engine's current principal variation. These are engine
+predictions, not a guarantee that a human opponent will follow the line.
+Legacy saved mistakes and opening drills are preserved, but their menus and
+the large settings menu are no longer part of the main interface.
+
+Not every position has a forced mate. Analysis does not claim otherwise when
+none has been found, and finite computation cannot guarantee the globally
+shortest possible mate. Continuous analysis consumes CPU and battery until
+you leave analysis mode or close the app.
+
+## Coach And Games
+
+The **Coach & games** drawer entry keeps six actions and one switch together:
+
+* **Explain my last move** compares the engine's exact evaluations before and
+  after your move, at depth 12 or higher. For losses of at least one pawn it
+  shows a better move and the opponent's analyzed continuation. A short notice
+  appears with normal hints when sufficient live analysis is available.
+* **Review game** uses a separate Stockfish worker to analyze missing main-line
+  positions without moving pieces or changing your side in the live game.
+  It ranks the three largest estimated losses for your side, or both sides in
+  board-review mode. Progress can be cancelled. A review is also offered at
+  the end of a game. Coverage is reported explicitly: mate scores and incomplete
+  positions are not converted into artificial pawn-loss estimates.
+* **Practice mistakes** turns reviewed losses into separate-board drills using
+  the reviewed engine recommendation. Enter a move by tapping the board or
+  typing notation, then check it, reveal the recommendation, or continue to
+  the next drill. Matching that recorded recommendation does not mean it is
+  the only good move. Practice never edits the live board or player side.
+  New reviews make older findings practice-ready; malformed or incomplete
+  positions are skipped. The game-review dialog also links directly to practice.
+* **Save game** stores the complete move tree, current position, clocks, and
+  player mode under a name. Saving an opened save updates that entry.
+* **Saved games** lists saved positions newest first, with resume and confirmed
+  delete actions. Saves stay in app-private storage, independently of training
+  data. The limit is 20 games, each up to 256 KiB; a full list produces an error
+  rather than silently deleting old saves. Invalid saves do not replace the
+  currently open game.
+* **Share game** opens Android's share sheet with a UTF-8 PGN attachment and
+  temporary read access to that file. The receiving app can import or save
+  the game. Sharing leaves the current position and player mode unchanged.
+
+**Automatic hints** is on by default, preserving the existing play experience.
+Turn it off to hide advice, then tap **Hint** or open **Best continuation** to
+reveal advice for the current position only. The next played move hides it
+again. The opponent remains automatic; the analysis board still shows advice.
 
 ```powershell
 .\gradlew.bat :DroidFishApp:testDebugUnitTest --tests org.petero.droidfish.gamelogic.MastermindCoachTest
@@ -91,8 +122,9 @@ The full regression commands are `gradlew.bat test assembleDebug` and
 requires external Syzygy WDL/DTZ files under `/sdcard/DroidFish/rtb`, including
 `KNPvKB`, `KNNvKP`, `KBvKP`, `KNvKP`, `KNNvK`, and `KPvK`, plus read access to
 external storage. These are test-device fixtures and are not bundled in the APK.
-`CheckmateAnalysisTest` exercises native mate search, centipawn rejection,
-terminal positions, and restoration of normal analysis/engine selection.
+`CheckmateAnalysisTest` exercises live native mate search, normal-move fallback,
+terminal positions, analysis after played moves, engine restoration, and actual
+opponent checkmate-in-one play with either color.
 
 # Upstream Introduction
 

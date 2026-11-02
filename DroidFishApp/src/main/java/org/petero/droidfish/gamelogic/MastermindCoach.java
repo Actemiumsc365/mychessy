@@ -11,6 +11,26 @@ public final class MastermindCoach {
 
     private MastermindCoach() { }
 
+    public static String explainLine(Position position, List<Move> moves) {
+        if (moves == null || moves.isEmpty() || !TextIO.isValid(position, moves.get(0)))
+            return "No matching engine recommendation yet.";
+        Position replay = new Position(position);
+        StringBuilder text = new StringBuilder();
+        for (int index = 0; index < Math.min(8, moves.size()); index++) {
+            Move move = moves.get(index);
+            if (!TextIO.isValid(replay, move))
+                break;
+            if (index > 0)
+                text.append('\n');
+            text.append(index == 0 ? "Play: " : index == 1 ? "Best reply: " :
+                    replay.whiteMove == position.whiteMove ? "Continue: " : "Opponent: ");
+            text.append(TextIO.moveToString(replay, move, false, false));
+            replay.makeMove(move, new UndoInfo());
+        }
+        text.append("\n\n").append(explain(position, moves.get(0)));
+        return text.toString();
+    }
+
     public static String explain(Position position, Move move) {
         Position before = new Position(position);
         if (move == null || !TextIO.isValid(before, move))
@@ -61,14 +81,36 @@ public final class MastermindCoach {
         public final int depth;
         public final Move bestMove;
         public final boolean exact;
+        public final ArrayList<Move> line;
 
         public Evaluation(String fen, int whiteScore, int depth, Move bestMove, boolean exact) {
+            this(fen, whiteScore, depth, bestMove, exact, java.util.Collections.emptyList());
+        }
+
+        public Evaluation(String fen, int whiteScore, int depth, Move bestMove, boolean exact,
+                          List<Move> line) {
             this.fen = fen;
             this.whiteScore = whiteScore;
             this.depth = depth;
             this.bestMove = bestMove;
             this.exact = exact;
+            this.line = new ArrayList<>(line);
         }
+    }
+
+    public static String explainMistake(Evaluation before, Evaluation after, Move played)
+            throws ChessParseError {
+        if (before == null || after == null || !before.exact || !after.exact ||
+                before.depth < MIN_DEPTH || after.depth < MIN_DEPTH)
+            return "This move needs more analysis before it can be reviewed.";
+        Mistake mistake = compare(before, after, played);
+        if (mistake == null)
+            return "No estimated loss of at least one pawn found for this move.";
+        String text = "Played: " + mistake.move + "\nBetter: " + mistake.recommendation +
+                "\nEstimated loss: " + lossText(mistake.loss) + " pawns.";
+        if (!after.line.isEmpty())
+            text += "\n\nOpponent's continuation:\n" + explainLine(TextIO.readFEN(after.fen), after.line);
+        return text;
     }
 
     public static final class Mistake {
@@ -77,13 +119,15 @@ public final class MastermindCoach {
         public final String move;
         public final String recommendation;
         public final int loss;
+        public final Drill practice;
 
-        Mistake(String key, String category, String move, String recommendation, int loss) {
+        Mistake(String key, String category, String move, String recommendation, int loss, Drill practice) {
             this.key = key;
             this.category = category;
             this.move = move;
             this.recommendation = recommendation;
             this.loss = loss;
+            this.practice = practice;
         }
     }
 
@@ -117,7 +161,8 @@ public final class MastermindCoach {
             category = "Piece moves";
         return new Mistake(before.fen + "|" + TextIO.moveToUCIString(played), category,
                 TextIO.moveToString(position, played, false, false),
-                TextIO.moveToString(position, before.bestMove, false, false), loss);
+            TextIO.moveToString(position, before.bestMove, false, false), loss,
+            new Drill(before.fen, TextIO.moveToUCIString(before.bestMove)));
     }
 
     public static final class Drill {
@@ -160,5 +205,79 @@ public final class MastermindCoach {
 
     public static String lossText(int centipawns) {
         return String.format(Locale.US, "%.2f", centipawns / 100.0);
+    }
+
+    public static final class Review {
+        public int total;
+        public int reviewed;
+        public final ArrayList<ReviewEntry> mistakes = new ArrayList<>();
+
+        public String summary() throws ChessParseError {
+            StringBuilder text = new StringBuilder("Reviewed ").append(reviewed).append(" of ")
+                    .append(total).append(" moves.\n");
+            if (reviewed < total)
+                text.append("Mate-score or incomplete positions are not assigned a pawn-loss estimate.\n");
+            if (mistakes.isEmpty())
+                return text.append(reviewed == 0 ? "\nNo moves have usable analysis yet." :
+                        "\nNo estimated loss of at least one pawn found in the reviewed moves.").toString();
+            text.append("\nBiggest mistakes\n");
+            for (int index = 0; index < mistakes.size(); index++) {
+                ReviewEntry entry = mistakes.get(index);
+                text.append('\n').append(index + 1).append(". Move ").append(entry.moveNumber)
+                        .append(entry.white ? " (White)\n" : " (Black)\n")
+                        .append(explainMistake(entry.before, entry.after, entry.played)).append('\n');
+            }
+            return text.toString();
+        }
+    }
+
+    public static final class ReviewEntry {
+        public final Evaluation before;
+        public final Evaluation after;
+        public final Move played;
+        public final Mistake mistake;
+        public final int moveNumber;
+        public final boolean white;
+
+        private ReviewEntry(Evaluation before, Evaluation after, Move played, Mistake mistake,
+                            Position position) {
+            this.before = before;
+            this.after = after;
+            this.played = played;
+            this.mistake = mistake;
+            moveNumber = position.fullMoveCounter;
+            white = position.whiteMove;
+        }
+    }
+
+    public static Review review(String pgn, java.util.Map<String, Evaluation> evaluations,
+                                Boolean playerWhite) throws ChessParseError {
+        GameTree tree = new GameTree(null);
+        PGNOptions options = new PGNOptions();
+        options.imp.variations = false;
+        if (!tree.readPGN(pgn, options))
+            throw new ChessParseError("Cannot read the game");
+        Review review = new Review();
+        while (!tree.variations().isEmpty()) {
+            Position beforePosition = new Position(tree.currentPos);
+            Move move = tree.variations().get(0);
+            Evaluation before = evaluations.get(TextIO.toFEN(beforePosition));
+            tree.goForward(0);
+            if (playerWhite != null && beforePosition.whiteMove != playerWhite)
+                continue;
+            review.total++;
+            Evaluation after = evaluations.get(TextIO.toFEN(tree.currentPos));
+            if (before == null || after == null || !before.exact || !after.exact ||
+                    before.depth < MIN_DEPTH || after.depth < MIN_DEPTH)
+                continue;
+            review.reviewed++;
+            Mistake mistake = compare(before, after, move);
+            if (mistake != null)
+                review.mistakes.add(new ReviewEntry(before, after, move, mistake, beforePosition));
+        }
+        review.mistakes.sort((first, second) -> Integer.compare(second.mistake.loss, first.mistake.loss));
+        while (review.mistakes.size() > 3)
+            review.mistakes.remove(review.mistakes.size() - 1);
+        return review;
     }
 }

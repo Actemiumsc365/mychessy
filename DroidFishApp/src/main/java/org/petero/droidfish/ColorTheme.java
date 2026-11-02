@@ -71,7 +71,8 @@ public class ColorTheme {
         R.string.colortheme_grey,
         R.string.colortheme_scid_default,
         R.string.colortheme_scid_brown,
-        R.string.colortheme_scid_green
+        R.string.colortheme_scid_green,
+        R.string.theme_paper
     };
     private final static String[][] themeColors = {
     { // Original
@@ -108,8 +109,17 @@ public class ColorTheme {
         "#FF769656", "#FFEEEED2", "#FFFF0000", "#FF000000", "#FFFFFFFF", "#FF666666",
         "#A01F1FFF", "#A0FF1F1F", "#501F1FFF", "#50FF1F1F", "#371F1FFF", "#3CFF1F1F", "#1E1F1FFF", "#28FF1F1F",
         "#FFFF0000", "#FF808080", "#FFC0C000", "#FFDEE3CE", "#FF183C21"
+    },
+    {
+        "#FF8D9A9C", "#FFF3F5F5", "#FFD64632", "#FF172327", "#FFFFFFFF", "#FFB8D7D1",
+        "#D000796B", "#D0C53D32", "#9000796B", "#90C53D32", "#6000796B", "#60C53D32", "#4000796B", "#40C53D32",
+        "#FF24383C", "#FF596E72", "#FF397269", "#FF172327", "#FFFAFCFC"
     }
     };
+
+    static int themeColor(int themeType, int colorType) {
+        return Color.parseColor(themeColors[themeType][colorType]);
+    }
 
     final void readColors(SharedPreferences settings) {
         for (int i = 0; i < numColors; i++) {
@@ -126,6 +136,7 @@ public class ColorTheme {
 
     final void setTheme(SharedPreferences settings, int themeType) {
         Editor editor = settings.edit();
+        editor.putInt("selectedColorTheme", themeType);
         for (int i = 0; i < numColors; i++)
             editor.putString(prefPrefix + prefNames[i], themeColors[themeType][i]);
         editor.apply();

@@ -90,6 +90,13 @@ public final class Util {
             attrs.flags &= (~WindowManager.LayoutParams.FLAG_FULLSCREEN);
         }
         a.getWindow().setAttributes(attrs);
+        int visibility = View.SYSTEM_UI_FLAG_VISIBLE;
+        if (fullScreenMode) {
+            visibility = View.SYSTEM_UI_FLAG_FULLSCREEN | View.SYSTEM_UI_FLAG_HIDE_NAVIGATION;
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT)
+                visibility |= View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY;
+        }
+        a.getWindow().getDecorView().setSystemUiVisibility(visibility);
     }
 
     /** Change foreground/background color in a view. */

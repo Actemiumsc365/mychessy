@@ -31,6 +31,7 @@ import android.content.res.Configuration;
 import android.graphics.Canvas;
 import android.util.AttributeSet;
 import android.util.Pair;
+import android.widget.LinearLayout;
 import android.widget.Toast;
 
 /** Chess board widget suitable for play mode. */
@@ -73,6 +74,18 @@ public class ChessBoardPlay extends ChessBoard {
     protected int getMaxHeightPercentage() { return 75; }
     @Override
     protected int getMaxWidthPercentage() { return 65; }
+
+    @Override
+    protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
+        super.onMeasure(widthMeasureSpec, heightMeasureSpec);
+        if (getResources().getConfiguration().screenWidthDp >= 600 &&
+                getParent() instanceof LinearLayout &&
+                ((LinearLayout)getParent()).getOrientation() == LinearLayout.HORIZONTAL) {
+            int width = MeasureSpec.getSize(widthMeasureSpec);
+            int height = MeasureSpec.getSize(heightMeasureSpec);
+            setMeasuredDimension(Math.min(width * 3 / 5, height), height);
+        }
+    }
 
     @Override
     protected void computeOrigin(int width, int height) {

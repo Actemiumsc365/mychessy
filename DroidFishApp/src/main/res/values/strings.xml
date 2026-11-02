@@ -1,9 +1,18 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">Mastermind Chess</string>
-    <string name="mastermind_training">Mastermind Training</string>
+    <string name="appearance">Appearance</string>
+    <string name="coach_and_games">Coach &amp; games</string>
+    <string name="hint">Hint</string>
+    <string name="show_hint">Show hint</string>
+    <string name="full_screen">Full screen</string>
+    <string name="theme_classic">Classic</string>
+    <string name="theme_forest">Forest</string>
+    <string name="theme_graphite">Graphite</string>
+    <string name="theme_paper">Paper</string>
+    <string name="mastermind_training">Best continuation</string>
     <string name="checkmate_only_suggestions">Checkmate-only suggestions</string>
-    <string name="searching_for_checkmate">Searching for forced checkmate...</string>
+    <string name="searching_for_checkmate">Analyzing strongest continuation...</string>
     <string name="engine_hash_default">64</string>
     <string name="moves_per_session_default">60</string>
     <string name="time_control_default">120000</string>

@@ -156,6 +156,7 @@ public class DroidFish extends Activity
     private ChessBoardPlay cb;
     DroidChessController ctrl = null;
     private MastermindPanel mastermindPanel;
+    private String revealedHintFen;
     private boolean mShowThinking;
     private boolean mShowStats;
     private boolean fullPVLines;
@@ -858,6 +859,13 @@ public class DroidFish extends Activity
         reInitUI();
     }
 
+    @Override
+    public void onWindowFocusChanged(boolean hasFocus) {
+        super.onWindowFocusChanged(hasFocus);
+        if (hasFocus && settings != null)
+            Util.setFullScreenMode(this, settings);
+    }
+
     /** Re-initialize UI when layout should change because of rotation or handedness change. */
     private void reInitUI() {
         ChessBoardPlay oldCB = cb;
@@ -938,6 +946,12 @@ public class DroidFish extends Activity
         moveListScroll.setFocusable(false);
         moveList.setFocusable(false);
         thinking.setFocusable(false);
+        thinking.setOnClickListener(view -> {
+            if (!settings.getBoolean("automaticHints", true) && ctrl.humansTurn()) {
+                requestHint();
+                mastermind().show();
+            }
+        });
 
         initDrawers();
 
@@ -1059,6 +1073,8 @@ public class DroidFish extends Activity
     @Override
     protected void onDestroy() {
         setAutoMode(AutoMode.OFF);
+        if (mastermindPanel != null)
+            mastermindPanel.close();
         if (ctrl != null)
             ctrl.shutdownEngine();
         setNotification(false);
@@ -1091,15 +1107,17 @@ public class DroidFish extends Activity
         mShowThinking = settings.getBoolean("showThinking", false);
         mShowStats = settings.getBoolean("showStats", true);
         fullPVLines = settings.getBoolean("fullPVLines", false);
-        numPV = settings.getInt("numPV", 1);
+        numPV = 1;
         ctrl.setMultiPVMode(numPV);
+        ctrl.setCheckmateOnly(true);
         mWhiteBasedScores = settings.getBoolean("whiteBasedScores", false);
         maxNumArrows = getIntSetting("thinkingArrows", 4);
         mShowBookHints = settings.getBoolean("bookHints", false);
         mEcoHints = getIntSetting("ecoHints", ECO_HINTS_AUTO);
 
-        String engine = settings.getString("engine", "stockfish");
-        setEngine(engine);
+        settings.edit().putString("engine", "stockfish").apply();
+        setEngine("stockfish");
+        ctrl.setStrength(false, Integer.MAX_VALUE);
 
         mPonderMode = settings.getBoolean("ponderMode", false);
         if (!mPonderMode)
@@ -1151,7 +1169,7 @@ public class DroidFish extends Activity
 
         guideShowOnStart = settings.getBoolean("guideShowOnStart", true);
 
-        bookOptions.filename = settings.getString("bookFile", "");
+        bookOptions.filename = "nobook:";
         bookOptions.maxLength = getIntSetting("bookMaxLength", 1000000);
         bookOptions.preferMainLines = settings.getBoolean("bookPreferMainLines", false);
         bookOptions.tournamentMode = settings.getBoolean("bookTournamentMode", false);
@@ -1218,6 +1236,13 @@ public class DroidFish extends Activity
 
     private void overrideViewAttribs() {
         Util.overrideViewAttribs(findViewById(R.id.main));
+        int foreground = ColorTheme.instance().getColor(ColorTheme.FONT_FOREGROUND);
+        for (int viewId : new int[] { R.id.white_clock, R.id.title_text, R.id.black_clock,
+                R.id.white_pieces, R.id.title_text_summary, R.id.black_pieces }) {
+            TextView title = findViewById(viewId);
+            if (title != null)
+                title.setTextColor(foreground);
+        }
     }
 
     /**
@@ -1452,11 +1477,15 @@ public class DroidFish extends Activity
 
     private enum DrawerItemId {
         NEW_GAME,
+        ANALYSIS,
+        PLAY_WHITE,
+        PLAY_BLACK,
         SET_STRENGTH,
         EDIT_BOARD,
         SETTINGS,
         FILE_MENU,
         MASTERMIND,
+        COACH,
         RESIGN,
         FORCE_MOVE,
         DRAW,
@@ -1474,15 +1503,12 @@ public class DroidFish extends Activity
 
         final DrawerItem[] leftItems = new DrawerItem[] {
             new DrawerItem(DrawerItemId.NEW_GAME, R.string.option_new_game),
-            new DrawerItem(DrawerItemId.SET_STRENGTH, R.string.set_engine_strength),
-            new DrawerItem(DrawerItemId.EDIT_BOARD, R.string.option_edit_board),
-            new DrawerItem(DrawerItemId.FILE_MENU, R.string.option_file),
+            new DrawerItem(DrawerItemId.PLAY_WHITE, R.string.play_white),
+            new DrawerItem(DrawerItemId.PLAY_BLACK, R.string.play_black),
+            new DrawerItem(DrawerItemId.ANALYSIS, R.string.analysis),
             new DrawerItem(DrawerItemId.MASTERMIND, R.string.mastermind_training),
-            new DrawerItem(DrawerItemId.SELECT_BOOK, R.string.option_select_book),
-            new DrawerItem(DrawerItemId.MANAGE_ENGINES, R.string.option_manage_engines),
-            new DrawerItem(DrawerItemId.SET_COLOR_THEME, R.string.option_color_theme),
-            new DrawerItem(DrawerItemId.SETTINGS, R.string.option_settings),
-            new DrawerItem(DrawerItemId.ABOUT, R.string.option_about),
+            new DrawerItem(DrawerItemId.COACH, R.string.coach_and_games),
+            new DrawerItem(DrawerItemId.SET_COLOR_THEME, R.string.appearance),
         };
         leftDrawer.setAdapter(new ArrayAdapter<>(this,
                                                  R.layout.drawer_list_item,
@@ -1522,7 +1548,22 @@ public class DroidFish extends Activity
         setAutoMode(AutoMode.OFF);
 
         switch (id) {
+        case COACH:
+            mastermind().showTools();
+            break;
+        case ANALYSIS:
+            newGameMode(GameMode.ANALYSIS);
+            break;
+        case PLAY_WHITE:
+            newGameMode(GameMode.PLAYER_WHITE);
+            setBoardFlip(true);
+            break;
+        case PLAY_BLACK:
+            newGameMode(GameMode.PLAYER_BLACK);
+            setBoardFlip(true);
+            break;
         case MASTERMIND:
+            requestHint();
             mastermind().show();
             break;
         case NEW_GAME:
@@ -1569,7 +1610,7 @@ public class DroidFish extends Activity
                 reShowDialog(SELECT_ENGINE_DIALOG_NOMANAGE);
             break;
         case SET_COLOR_THEME:
-            showDialog(SET_COLOR_THEME_DIALOG);
+            reShowDialog(SET_COLOR_THEME_DIALOG);
             break;
         case ABOUT:
             showDialog(ABOUT_DIALOG);
@@ -1843,6 +1884,7 @@ public class DroidFish extends Activity
             throw new RuntimeException();
         }
         setStatusString(str);
+        mastermind().onGameStatus(s.state != Game.GameState.ALIVE);
     }
 
     private void setStatusString(String str) {
@@ -1910,9 +1952,8 @@ public class DroidFish extends Activity
     @Override
     public void setThinkingInfo(ThinkingInfo ti) {
         mateThinking = ti.checkmateOnly ? ti : null;
-        if (ti.checkmateOnly)
-            mastermind().onMateThinking(ti);
-        if (!ti.checkmateOnly && gameMode.analysisMode() && ti.evaluation != null)
+        mastermind().onMateThinking(ti);
+        if (ti.evaluation != null)
             mastermind().onEvaluation(ti.evaluation);
         thinkingStr1 = ti.pvStr;
         thinkingStr2 = ti.statStr;
@@ -1920,12 +1961,10 @@ public class DroidFish extends Activity
         ecoInfoStr = ti.eco;
         distToEcoTree = ti.distToEcoTree;
         pvMoves = ti.pvMoves;
-        if (ti.checkmateOnly) {
+        if (ti.checkmateOnly && ti.mateResult != null) {
             pvMoves = new ArrayList<>();
-            if (ti.mateSearchComplete && ti.mateResult != null)
-                pvMoves.add(ti.mateResult.moves);
-            thinkingStr1 = ti.mateResult == null ? "" : "Mate in " + ti.mateResult.distance + ": " + ti.mateResult.line;
-            thinkingStr2 = "";
+            pvMoves.add(ti.mateResult.moves);
+            thinkingStr1 = "Mate in " + ti.mateResult.distance + ": " + ti.mateResult.line;
         }
         bookMoves = ti.bookMoves;
         updateThinkingInfo();
@@ -1951,15 +1990,27 @@ public class DroidFish extends Activity
 
     private void updateThinkingInfo() {
         if (ctrl != null && ctrl.checkmateOnly()) {
+            if (!hintsVisible()) {
+                thinking.setText(R.string.hint);
+                thinking.setContentDescription(getString(R.string.show_hint));
+                thinking.setVisibility(View.VISIBLE);
+                cb.setMoveHints(null);
+                return;
+            }
+            thinking.setContentDescription(null);
             boolean matching = mateThinking != null && ctrl.getFEN().equals(mateThinking.positionFen);
-            boolean complete = matching && mateThinking.mateSearchComplete;
-            boolean found = complete && mateThinking.mateResult != null;
-            thinking.setText(!complete ? getString(R.string.searching_for_checkmate) :
-                found ? "Mate in " + mateThinking.mateResult.distance + ": " + mateThinking.mateResult.line :
-                org.petero.droidfish.gamelogic.CheckmateSearch.NO_MATE);
+            boolean found = matching && mateThinking.mateResult != null;
+            boolean hasLine = matching && !mateThinking.pvMoves.isEmpty() &&
+                    !mateThinking.pvMoves.get(0).isEmpty();
+            thinking.setText(found ? "Mate in " + mateThinking.mateResult.distance + ": " + mateThinking.mateResult.line :
+                hasLine ? mateThinking.pvStr : matching && mateThinking.mateSearchComplete ?
+                    "Game over. No legal continuation." : getString(R.string.searching_for_checkmate));
             thinking.setVisibility(View.VISIBLE);
-            cb.setMoveHints(found ? mateThinking.mateResult.moves.subList(0,
-                Math.min(maxNumArrows, mateThinking.mateResult.moves.size())) : null);
+            if (mastermind().mistakeNotice() != null)
+                thinking.append("\n\n" + mastermind().mistakeNotice());
+            List<Move> hints = found ? mateThinking.mateResult.moves :
+                    hasLine ? mateThinking.pvMoves.get(0) : null;
+            cb.setMoveHints(hints == null ? null : hints.subList(0, Math.min(1, hints.size())));
             return;
         }
         boolean thinkingEmpty = true;
@@ -2219,6 +2270,9 @@ public class DroidFish extends Activity
     }
 
     private void startNewGame(int type) {
+        revealedHintFen = null;
+        if (mastermindPanel != null)
+            mastermindPanel.beginGame();
         if (type != 2) {
             int gameModeType = (type == 0) ? GameMode.PLAYER_WHITE : GameMode.PLAYER_BLACK;
             Editor editor = settings.edit();
@@ -2370,32 +2424,40 @@ public class DroidFish extends Activity
         return builder.create();
     }
 
-    private void shareGameOrText(boolean game) {
+    Intent createShareIntent(boolean game) throws IOException {
         Intent i = new Intent(Intent.ACTION_SEND);
         i.addFlags(Intent.FLAG_ACTIVITY_CLEAR_WHEN_TASK_RESET);
         i.setType(game ? "application/x-chess-pgn" : "text/plain");
         String pgn = ctrl.getPGN();
-        if (pgn.length() < 32768) {
+        if (!game && pgn.length() < 32768) {
             i.putExtra(Intent.EXTRA_TEXT, pgn);
         } else {
             File dir = new File(getFilesDir(), "shared");
-            dir.mkdirs();
+            if (!dir.isDirectory() && !dir.mkdirs())
+                throw new IOException("Could not create the game export directory.");
             File file = new File(dir, game ? "game.pgn" : "game.txt");
             try (FileOutputStream fos = new FileOutputStream(file);
                  OutputStreamWriter ow = new OutputStreamWriter(fos, "UTF-8")) {
                 ow.write(pgn);
-            } catch (IOException e) {
-                DroidFishApp.toast(e.getMessage(), Toast.LENGTH_LONG);
-                return;
             }
             String authority = getPackageName() + ".fileprovider";
             Uri uri = FileProvider.getUriForFile(this, authority, file);
             i.putExtra(Intent.EXTRA_STREAM, uri);
+            i.setClipData(ClipData.newRawUri("Chess game", uri));
+            i.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
         }
+        return i;
+    }
+
+    void shareGameOrText(boolean game) {
         try {
+            Intent i = createShareIntent(game);
             startActivity(Intent.createChooser(i, getString(game ? R.string.share_game :
                                                                    R.string.share_text)));
-        } catch (ActivityNotFoundException ignore) {
+        } catch (IOException exception) {
+            DroidFishApp.toast(exception.getMessage(), Toast.LENGTH_LONG);
+        } catch (ActivityNotFoundException exception) {
+            DroidFishApp.toast("No app is available to share this game.", Toast.LENGTH_LONG);
         }
     }
 
@@ -2767,30 +2829,60 @@ public class DroidFish extends Activity
 
     private Dialog setColorThemeDialog() {
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
-        builder.setTitle(R.string.select_color_theme);
-        String[] themeNames = new String[ColorTheme.themeNames.length];
-        for (int i = 0; i < themeNames.length; i++)
-            themeNames[i] = getString(ColorTheme.themeNames[i]);
-        builder.setSingleChoiceItems(themeNames, -1, (dialog, item) -> {
-            ColorTheme.instance().setTheme(settings, item);
+        builder.setTitle(R.string.appearance);
+        android.widget.Switch fullscreen = new android.widget.Switch(this);
+        fullscreen.setText(R.string.full_screen);
+        int padding = (int)(24 * getResources().getDisplayMetrics().density);
+        fullscreen.setPadding(padding, padding / 2, padding, padding / 2);
+        fullscreen.setChecked(settings.getBoolean("fullScreenMode", false));
+        fullscreen.setOnCheckedChangeListener((button, checked) -> {
+            settings.edit().putBoolean("fullScreenMode", checked).apply();
+            Util.setFullScreenMode(this, settings);
+        });
+        builder.setView(fullscreen);
+        final int[] themeIds = { 5, 6, 3, 7 };
+        String[] names = { getString(R.string.theme_classic), getString(R.string.theme_forest),
+                getString(R.string.theme_graphite), getString(R.string.theme_paper) };
+        ArrayAdapter<String> themes = new ArrayAdapter<String>(this,
+                android.R.layout.simple_list_item_single_choice, names) {
+            @Override
+            public View getView(int position, View convertView, android.view.ViewGroup parent) {
+                TextView row = (TextView)super.getView(position, convertView, parent);
+                android.graphics.drawable.LayerDrawable swatch = new android.graphics.drawable.LayerDrawable(
+                        new android.graphics.drawable.Drawable[] {
+                            new android.graphics.drawable.ColorDrawable(ColorTheme.themeColor(
+                                    themeIds[position], ColorTheme.DARK_SQUARE)),
+                            new android.graphics.drawable.ColorDrawable(ColorTheme.themeColor(
+                                    themeIds[position], ColorTheme.BRIGHT_SQUARE)) });
+                int size = (int)(32 * getResources().getDisplayMetrics().density);
+                swatch.setLayerInset(1, size / 2, 0, 0, 0);
+                swatch.setBounds(0, 0, size, size);
+                row.setCompoundDrawables(swatch, null, null, null);
+                row.setCompoundDrawablePadding(size / 2);
+                return row;
+            }
+        };
+        int selected = -1;
+        for (int index = 0; index < themeIds.length; index++)
+            if (themeIds[index] == settings.getInt("selectedColorTheme", -1))
+                selected = index;
+        builder.setSingleChoiceItems(themes, selected, (dialog, item) -> {
+            ColorTheme.instance().setTheme(settings, themeIds[item]);
             PieceSet.instance().readPrefs(settings);
             cb.setColors();
             gameTextListener.clear();
             ctrl.prefsChanged(false);
-            dialog.dismiss();
             overrideViewAttribs();
         });
+        builder.setPositiveButton(android.R.string.ok, null);
         return builder.create();
     }
 
     private Dialog gameModeDialog() {
         final String[] items = {
             getString(R.string.analysis_mode),
-            getString(R.string.edit_replay_game),
             getString(R.string.play_white),
-            getString(R.string.play_black),
-            getString(R.string.two_players),
-            getString(R.string.comp_vs_comp)
+            getString(R.string.play_black)
         };
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
         builder.setTitle(R.string.select_game_mode);
@@ -2799,11 +2891,8 @@ public class DroidFish extends Activity
             boolean matchPlayerNames = false;
             switch (item) {
             case 0: gameModeType = GameMode.ANALYSIS;      break;
-            case 1: gameModeType = GameMode.EDIT_GAME;     break;
-            case 2: gameModeType = GameMode.PLAYER_WHITE; matchPlayerNames = true; break;
-            case 3: gameModeType = GameMode.PLAYER_BLACK; matchPlayerNames = true; break;
-            case 4: gameModeType = GameMode.TWO_PLAYERS;   break;
-            case 5: gameModeType = GameMode.TWO_COMPUTERS; break;
+            case 1: gameModeType = GameMode.PLAYER_WHITE; matchPlayerNames = true; break;
+            case 2: gameModeType = GameMode.PLAYER_BLACK; matchPlayerNames = true; break;
             default: break;
             }
             dialog.dismiss();
@@ -2977,6 +3066,39 @@ public class DroidFish extends Activity
         return mastermindPanel;
     }
 
+    boolean hintsVisible() {
+        return gameMode.analysisMode() || settings.getBoolean("automaticHints", true) ||
+                ctrl != null && ctrl.getFEN().equals(revealedHintFen);
+    }
+
+    void setAutomaticHints(boolean enabled) {
+        settings.edit().putBoolean("automaticHints", enabled).apply();
+        revealedHintFen = null;
+        updateThinkingInfo();
+    }
+
+    void requestHint() {
+        if (ctrl.humansTurn()) {
+            revealedHintFen = ctrl.getFEN();
+            updateThinkingInfo();
+        }
+    }
+
+    void resumeSavedGame(MastermindStore.SavedGame saved) throws IOException, ChessParseError {
+        revealedHintFen = null;
+        GameMode previous = gameMode;
+        gameMode = new GameMode(saved.mode);
+        try {
+            ctrl.restoreGame(saved.state, saved.version, gameMode);
+        } catch (IOException | ChessParseError exception) {
+            gameMode = previous;
+            throw exception;
+        }
+        settings.edit().putString("gameMode", Integer.toString(saved.mode)).apply();
+        maybeAutoModeOff(gameMode);
+        setBoardFlip(true);
+    }
+
     private Dialog thinkingMenuDialog() {
         final int ADD_ANALYSIS      = 0;
         final int COPY_TO_CLIPBOARD = 1;
@@ -2988,35 +3110,19 @@ public class DroidFish extends Activity
         final int MASTERMIND        = 7;
         List<String> lst = new ArrayList<>();
         final List<Integer> actions = new ArrayList<>();
-        lst.add(getString(R.string.add_analysis));      actions.add(ADD_ANALYSIS);
         lst.add(getString(R.string.copy_to_clipboard)); actions.add(COPY_TO_CLIPBOARD);
         int numPV = this.numPV;
         final int maxPV = ctrl.maxPV();
-        if (gameMode.analysisMode()) {
-            lst.add(getString(R.string.mastermind_training)); actions.add(MASTERMIND);
-            numPV = Math.min(Math.max(numPV, 1), maxPV);
-            if (maxPV > 1) {
-                lst.add(getString(R.string.num_variations)); actions.add(MULTIPV_SET);
-            }
+        if (gameMode.analysisMode() || ctrl.humansTurn()) {
+            lst.add(0, getString(R.string.mastermind_training)); actions.add(0, MASTERMIND);
         }
         final int numPVF = numPV;
-        if (thinkingStr1.length() > 0) {
-            if (fullPVLines) {
-                lst.add(getString(R.string.truncate_variations)); actions.add(TRUNCATE_VARS);
-            } else {
-                lst.add(getString(R.string.show_whole_variations)); actions.add(SHOW_WHOLE_VARS);
-            }
-            if (mShowStats) {
-                lst.add(getString(R.string.hide_statistics)); actions.add(HIDE_STATISTICS);
-            } else {
-                lst.add(getString(R.string.show_statistics)); actions.add(SHOW_STATISTICS);
-            }
-        }
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
         builder.setTitle(R.string.analysis);
         builder.setItems(lst.toArray(new String[0]), (dialog, item) -> {
             switch (actions.get(item)) {
             case MASTERMIND:
+                requestHint();
                 mastermind().show();
                 break;
             case ADD_ANALYSIS: {
@@ -3728,6 +3834,8 @@ public class DroidFish extends Activity
 
     @Override
     public void movePlayed(Position pos, Move move, boolean computerMove) {
+        revealedHintFen = null;
+        mastermind().onMovePlayed(pos, move, computerMove);
         if (moveAnnounceType.startsWith("speech_")) {
             speech.say(pos, move, moveSoundEnabled && computerMove);
         } else if (moveSoundEnabled && computerMove) {

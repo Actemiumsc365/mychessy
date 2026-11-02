@@ -8,9 +8,9 @@ import static org.junit.Assert.*;
 
 public class CheckmateSearchTest {
     @Test
-    public void normalCommandIsUnchangedAndMateSearchIsBounded() {
+        public void bothModesKeepSearchingWithoutAnArbitraryMateDeadline() {
         assertEquals("go infinite", CheckmateSearch.command(false));
-        assertEquals("go mate 64 movetime 2500", CheckmateSearch.command(true));
+                assertEquals("go infinite", CheckmateSearch.command(true));
     }
 
     @Test

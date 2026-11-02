@@ -4,12 +4,12 @@ import java.util.ArrayList;
 import java.util.List;
 
 public final class CheckmateSearch {
-    public static final String NO_MATE = "No forced checkmate in this position";
+    public static final String NO_MATE = "No forced mate found yet. Continue analyzing for the strongest move.";
 
     private CheckmateSearch() { }
 
     public static String command(boolean enabled) {
-        return enabled ? "go mate 64 movetime 2500" : "go infinite";
+        return "go infinite";
     }
 
     public static final class Result {
