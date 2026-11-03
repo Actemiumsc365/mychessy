@@ -64,6 +64,11 @@ If you are running on battery power, it is recommended that you change settings 
     <string name="goto_move">Goto move</string>
     <string name="limit_strength">Limit Strength</string>
     <string name="set_engine_strength">Set Engine Strength</string>
+    <string name="practice_level">Practice level</string>
+    <string name="level_beginner">Beginner</string>
+    <string name="level_intermediate">Intermediate</string>
+    <string name="level_advanced">Advanced</string>
+    <string name="level_mastermind">Mastermind (Boss)</string>
     <string name="engine_cannot_reduce_strength">Engine cannot reduce playing strength</string>
     <string name="edit_randomization">Edit Randomization</string>
     <string name="invalid_number_format">Invalid number format</string>

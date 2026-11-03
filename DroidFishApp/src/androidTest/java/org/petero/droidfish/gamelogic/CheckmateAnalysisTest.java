@@ -11,6 +11,7 @@ import junit.framework.TestCase;
 import org.petero.droidfish.GUIInterface;
 import org.petero.droidfish.GameMode;
 import org.petero.droidfish.PGNOptions;
+import org.petero.droidfish.engine.DroidComputerPlayer;
 
 public class CheckmateAnalysisTest extends TestCase {
     private DroidChessController controller;
@@ -153,6 +154,78 @@ public class CheckmateAnalysisTest extends TestCase {
         GUIInterface.ThinkingInfo normal = await(controller.getFEN(), false);
         assertNotNull(normal.evaluation);
         assertFalse(normal.pvMoves.isEmpty());
+    }
+
+    public void testPracticeLevelsReachMoveRequestsAndKeepAnalysisUnrestricted() throws Exception {
+        org.petero.droidfish.book.BookOptions bookOptions = new org.petero.droidfish.book.BookOptions();
+        bookOptions.filename = "nobook:";
+        controller.setBookOptions(bookOptions);
+        java.lang.reflect.Field playerField = DroidChessController.class.getDeclaredField("computerPlayer");
+        playerField.setAccessible(true);
+        java.lang.reflect.Field requestField = DroidComputerPlayer.class.getDeclaredField("searchRequest");
+        requestField.setAccessible(true);
+        java.lang.reflect.Field eloField = DroidComputerPlayer.SearchRequest.class.getDeclaredField("elo");
+        eloField.setAccessible(true);
+        String fen = controller.getFEN();
+        for (PracticeLevel level : PracticeLevel.values()) {
+            controller.setGameMode(new GameMode(GameMode.ANALYSIS));
+            controller.setFENOrPGN(fen, false);
+            controller.setStrength(level.elo != Integer.MAX_VALUE, level.elo);
+            updates.clear();
+            await(fen, false);
+            assertEquals(level.elo, controller.eloData().getEloToUse());
+            DroidComputerPlayer player = (DroidComputerPlayer)playerField.get(controller);
+            synchronized (controller) {
+                synchronized (player) {
+                    DroidComputerPlayer.SearchRequest analysis =
+                            (DroidComputerPlayer.SearchRequest)requestField.get(player);
+                    assertNotNull(analysis);
+                    assertEquals(Integer.MAX_VALUE, eloField.getInt(analysis));
+                    controller.setGameMode(new GameMode(GameMode.PLAYER_BLACK));
+                    DroidComputerPlayer.SearchRequest move =
+                            (DroidComputerPlayer.SearchRequest)requestField.get(player);
+                    assertNotNull(move);
+                    assertEquals(level.elo, eloField.getInt(move));
+                    assertEquals(fen, controller.getFEN());
+                }
+            }
+        }
+    }
+
+    public void testStrengthChosenBeforeEngineStartupIsRetained() throws Exception {
+        controller.shutdownEngine();
+        controller.setStrength(true, PracticeLevel.INTERMEDIATE.elo);
+        updates.clear();
+        controller.setGameMode(new GameMode(GameMode.ANALYSIS));
+        await(controller.getFEN(), false);
+        assertEquals(PracticeLevel.INTERMEDIATE.elo, controller.eloData().getEloToUse());
+    }
+
+    public void testStockfish19DefaultNetworkMigratesPreviousSetting() throws Exception {
+        java.util.List<String> commands = new java.util.ArrayList<>();
+        org.petero.droidfish.engine.InternalStockFish engine =
+                new org.petero.droidfish.engine.InternalStockFish(message -> fail(message), "") {
+                    @Override
+                    public void writeLineToEngine(String command) {
+                        commands.add(command);
+                    }
+                };
+        String netName = "nn-1a298aa575a0.nnue";
+        engine.registerOption(("option name EvalFile type string default " + netName).split(" "));
+        java.io.File network = new java.io.File("/engine", netName);
+        java.lang.reflect.Field netFiles = engine.getClass().getSuperclass().getDeclaredField("defaultNetFiles");
+        netFiles.setAccessible(true);
+        ((java.io.File[])netFiles.get(engine))[0] = network;
+        for (String setting : new String[] { "nn-b1a57edbea57.nnue", netName, "" }) {
+            assertTrue(engine.setOption("EvalFile", setting));
+            assertEquals("setoption name EvalFile value " + network.getAbsolutePath(),
+                    commands.get(commands.size() - 1));
+        }
+        assertTrue(org.petero.droidfish.engine.InternalStockFish.keepExeDirFile(network));
+        assertFalse(org.petero.droidfish.engine.InternalStockFish.keepExeDirFile(
+                new java.io.File("/engine/nn-b1a57edbea57.nnue")));
+        assertFalse(org.petero.droidfish.engine.InternalStockFish.keepExeDirFile(
+                new java.io.File("/engine/nn-baff1ede1f90.nnue")));
     }
 
     public void testTerminalPositionCompletesWithoutNormalSuggestion() throws Exception {

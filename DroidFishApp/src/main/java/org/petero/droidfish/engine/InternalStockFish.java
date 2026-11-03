@@ -37,9 +37,9 @@ import org.petero.droidfish.EngineOptions;
 
 /** Stockfish engine running as process, started from assets resource. */
 public class InternalStockFish extends ExternalEngine {
-    private static final String[] defaultNets = {"nn-b1a57edbea57.nnue", "nn-baff1ede1f90.nnue"};
-    private static final String[] netOptions = {"evalfile", "evalfilesmall"};
-    private final File[] defaultNetFiles = {null, null}; // Full path of the copied default network files
+    private static final String[] defaultNets = {"nn-1a298aa575a0.nnue"};
+    private static final String[] netOptions = {"evalfile"};
+    private final File[] defaultNetFiles = new File[defaultNets.length]; // Full path of the copied default network files
 
     public InternalStockFish(Report report, String workDir) {
         super("", workDir, report);
@@ -122,7 +122,7 @@ public class InternalStockFish extends ExternalEngine {
 
     /** Copy the Stockfish default network files to "exeDir" if they are not already there. */
     private void copyNetFiles(File exeDir) throws IOException {
-        for (int i = 0; i < 2; i++) {
+        for (int i = 0; i < defaultNets.length; i++) {
             defaultNetFiles[i] = new File(exeDir, defaultNets[i]);
             if (!defaultNetFiles[i].exists()) {
                 File tmpFile = new File(exeDir, defaultNets[i] + ".tmp");
@@ -159,7 +159,7 @@ public class InternalStockFish extends ExternalEngine {
     @Override
     public void initOptions(EngineOptions engineOptions) {
         super.initOptions(engineOptions);
-        for (int i = 0; i < 2; i++) {
+        for (int i = 0; i < defaultNets.length; i++) {
             UCIOptions.OptionBase opt = getUCIOptions().getOption(netOptions[i]);
             if (opt != null)
                 setOption(netOptions[i], opt.getStringValue());
@@ -170,7 +170,9 @@ public class InternalStockFish extends ExternalEngine {
      *  pointing to the network file embedded in DroidFish. */
     @Override
     public boolean setOption(String name, String value) {
-        for (int i = 0; i < 2; i++) {
+        if ("evalfile".equalsIgnoreCase(name) && "nn-b1a57edbea57.nnue".equals(value))
+            value = defaultNets[0];
+        for (int i = 0; i < defaultNets.length; i++) {
             if (name.toLowerCase(Locale.US).equals(netOptions[i]) &&
                 (defaultNets[i].equals(value) || value.isEmpty())) {
                 getUCIOptions().getOption(name).setFromString(value);

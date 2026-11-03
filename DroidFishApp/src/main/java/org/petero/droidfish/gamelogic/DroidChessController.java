@@ -154,8 +154,10 @@ public class DroidChessController {
     }
 
     private int getEloToUse() {
-        return eloData().getEloToUse();
+        return strengthElo;
     }
+
+    private int strengthElo = Integer.MAX_VALUE;
 
     public final GameMode getGameMode() {
         return gameMode;
@@ -207,10 +209,11 @@ public class DroidChessController {
     /** Set engine strength. Restart computer thinking if appropriate. */
     public final synchronized void setStrength(boolean limitStrength, int elo) {
         EloData d = eloData();
-        int oldElo = d.getEloToUse();
-        d.limitStrength = limitStrength;
-        d.elo = elo;
-        int newElo = d.getEloToUse();
+        int oldElo = strengthElo;
+        int newElo = limitStrength ? elo : Integer.MAX_VALUE;
+        if (limitStrength && d.canChangeStrength())
+            newElo = Math.max(d.minElo, Math.min(d.maxElo, newElo));
+        strengthElo = newElo;
         if (oldElo != newElo) {
             if (computerPlayer != null)
                 computerPlayer.setStrength(newElo);
@@ -223,7 +226,10 @@ public class DroidChessController {
     public final synchronized EloData eloData() {
         if (computerPlayer == null)
             return new EloData();
-        return computerPlayer.getEloData();
+        EloData data = computerPlayer.getEloData();
+        data.limitStrength = strengthElo != Integer.MAX_VALUE;
+        data.elo = data.limitStrength ? strengthElo : data.maxElo;
+        return data;
     }
 
     /** Set engine UCI options. */
@@ -1107,7 +1113,7 @@ public class DroidChessController {
                         game.haveDrawOffer(),
                         wTime, bTime, wInc, bInc, movesToGo,
                         gui.ponderMode(), fPonderMove,
-                        engine, "stockfish".equals(engine) ? Integer.MAX_VALUE : getEloToUse());
+                        engine, getEloToUse());
                 computerPlayer.queueSearchRequest(sr);
             } else {
                 computerPlayer.queueStartEngine(searchId, engine);

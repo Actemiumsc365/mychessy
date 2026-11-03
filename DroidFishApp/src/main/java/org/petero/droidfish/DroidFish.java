@@ -56,6 +56,7 @@ import org.petero.droidfish.gamelogic.ChessParseError;
 import org.petero.droidfish.gamelogic.Game;
 import org.petero.droidfish.gamelogic.Move;
 import org.petero.droidfish.gamelogic.Position;
+import org.petero.droidfish.gamelogic.PracticeLevel;
 import org.petero.droidfish.gamelogic.TextIO;
 import org.petero.droidfish.gamelogic.GameTree.Node;
 import org.petero.droidfish.gamelogic.TimeControlData;
@@ -1117,7 +1118,9 @@ public class DroidFish extends Activity
 
         settings.edit().putString("engine", "stockfish").apply();
         setEngine("stockfish");
-        ctrl.setStrength(false, Integer.MAX_VALUE);
+        PracticeLevel level = PracticeLevel.fromSetting(
+            settings.getString("practiceLevel", "MASTERMIND"));
+        ctrl.setStrength(level.elo != Integer.MAX_VALUE, level.elo);
 
         mPonderMode = settings.getBoolean("ponderMode", false);
         if (!mPonderMode)
@@ -1505,6 +1508,7 @@ public class DroidFish extends Activity
             new DrawerItem(DrawerItemId.NEW_GAME, R.string.option_new_game),
             new DrawerItem(DrawerItemId.PLAY_WHITE, R.string.play_white),
             new DrawerItem(DrawerItemId.PLAY_BLACK, R.string.play_black),
+            new DrawerItem(DrawerItemId.SET_STRENGTH, R.string.practice_level),
             new DrawerItem(DrawerItemId.ANALYSIS, R.string.analysis),
             new DrawerItem(DrawerItemId.MASTERMIND, R.string.mastermind_training),
             new DrawerItem(DrawerItemId.COACH, R.string.coach_and_games),
@@ -2170,8 +2174,23 @@ public class DroidFish extends Activity
     }
 
     private Dialog setStrengthDialog() {
-        EloStrengthSetter m = new EloStrengthSetter();
-        return m.getDialog();
+        PracticeLevel[] levels = PracticeLevel.values();
+        PracticeLevel selected = PracticeLevel.fromSetting(
+            settings.getString("practiceLevel", "MASTERMIND"));
+        String[] labels = {getString(R.string.level_beginner),
+                   getString(R.string.level_intermediate),
+                   getString(R.string.level_advanced),
+                   getString(R.string.level_mastermind)};
+        return new AlertDialog.Builder(this)
+            .setTitle(R.string.practice_level)
+            .setSingleChoiceItems(labels, selected.ordinal(), (dialog, which) -> {
+                    PracticeLevel level = levels[which];
+                settings.edit().putString("practiceLevel", level.name()).apply();
+                ctrl.setStrength(level.elo != Integer.MAX_VALUE, level.elo);
+                dialog.dismiss();
+            })
+            .setNegativeButton(R.string.cancel, null)
+            .create();
     }
 
     /** Handle user interface to set engine strength. */

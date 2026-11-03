@@ -27,17 +27,27 @@ with 16 KB ELF page alignment for modern Android devices. Gradle runs the native
 build automatically.
 Launcher bitmaps can be regenerated with `tools/New-LauncherIcons.ps1`.
 
-The universal debug APK is approximately 64 MiB (67 MB), above the requested
-25-35 MB target. The large bundled Stockfish NNUE network alone compresses to
-about 55.8 MB. Reaching the smaller target requires a separately validated
-smaller engine/network combination or a different distribution strategy; the
-required network is deliberately not removed and no padding is added.
+The bundled engine is the official Stockfish 19 release (`sf_19`), with its
+matching SFNNv16 network `nn-1a298aa575a0.nnue`. The network is 98,511,183 bytes
+before APK compression (about 80.6 MB compressed). Its SHA-256 is
+`1a298aa575a085434d29027978dc36867fe9c5bcea9376654b7a8eba1e52dfc2`.
+Sources come from https://github.com/official-stockfish/Stockfish/tree/sf_19;
+the network comes from https://tests.stockfishchess.org/api/nn/nn-1a298aa575a0.nnue.
+Upstream licensing and author attribution are retained in the engine directory.
+The retired Stockfish 16.1 networks are no longer packaged, and the previous
+default EvalFile setting migrates to the new network. All four Android ABIs
+and the existing CPU fallback executables are retained. APK size is determined
+by the actual engine and network assets; no padding or unused models are added.
 
 ## Play And Analysis
 
 The main drawer contains **New Game**, **Play White**, **Play Black**,
-**Analysis**, **Best continuation**, **Coach & games**, and **Appearance**. Play actions resume the current
-position against bundled Stockfish at full strength. Random opening-book
+**Practice level**, **Analysis**, **Best continuation**, **Coach & games**, and **Appearance**.
+Play actions resume the current position against bundled Stockfish at the saved
+practice level: Beginner (1320 Elo target), Intermediate (1700), Advanced (2200),
+or Mastermind (Boss, unrestricted). These engine targets are not guaranteed
+human ratings. The default remains unrestricted and analysis stays at full
+strength regardless of practice level. Random opening-book
 moves are disabled; the engine searches for its moves using the game clock.
 
 In **Play White** or **Play Black**, the engine also analyzes your position on
