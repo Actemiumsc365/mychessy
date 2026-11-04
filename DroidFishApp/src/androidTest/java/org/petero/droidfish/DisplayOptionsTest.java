@@ -75,7 +75,7 @@ public class DisplayOptionsTest extends TestCase {
         SharedPreferences preferences = activity.getSharedPreferences("display_instrumentation", Context.MODE_PRIVATE);
         getInstrumentation().runOnMainSync(() -> {
             try {
-                for (int theme : new int[] { 5, 6, 3, 7 }) {
+                for (int theme : new int[] { ColorTheme.ROYAL_WOOD, 5, 6, 3, 7 }) {
                     ColorTheme.instance().setTheme(preferences, theme);
                     ColorTheme.instance().readColors(preferences);
                     assertEquals(theme, preferences.getInt("selectedColorTheme", -1));

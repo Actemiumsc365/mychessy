@@ -133,10 +133,19 @@ public class DroidChessController {
         return new int[]{5*60*1000, 60, 0};
     }
 
-    /** The chess clocks are stopped when the GUI is paused. */
+    /** The chess clocks are stopped and all engine work is suspended when the GUI is paused. */
     public final synchronized void setGuiPaused(boolean paused) {
+        boolean changed = guiPaused != paused;
         guiPaused = paused;
         updateGameMode();
+        if (!changed || (game == null) || (computerPlayer == null))
+            return;
+        if (paused) {
+            if (abortSearch())
+                updateGUI();
+        } else {
+            restartSearch();
+        }
     }
 
     /** Set game mode. */
@@ -1054,7 +1063,7 @@ public class DroidChessController {
 
     private void updateGameMode() {
         if (game != null) {
-            boolean gamePaused = !gameMode.clocksActive() || (humansTurn() && guiPaused);
+            boolean gamePaused = !gameMode.clocksActive() || guiPaused;
             game.setGamePaused(gamePaused);
             updateRemainingTime();
             Game.AddMoveBehavior amb;
@@ -1070,6 +1079,8 @@ public class DroidChessController {
 
     /** Start/stop computer thinking/analysis as appropriate. */
     private void updateComputeThreads() {
+        if (guiPaused)
+            return; // Never burn CPU in the background; setGuiPaused(false) restarts the search.
         boolean alive = game.tree.getGameState() == GameState.ALIVE;
         boolean analysis = (gameMode.analysisMode() || humanHintMode()) && alive;
         boolean computersTurn = !humansTurn() && alive;

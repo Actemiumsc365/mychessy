@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">Mastermind Chess</string>
+    <string name="app_name">AFGChess</string>
     <string name="engine_hash_default">64</string>
     <string name="moves_per_session_default">60</string>
     <string name="time_control_default">120000</string>
@@ -217,7 +217,7 @@ Pil gücüyle çalışıyorsanız, pil gücünden tasarruf etmek için ayarları
     <string name="engine_name_in_use">Kullanımdaki motor</string>
     <string name="slash_not_allowed">/ karakterine izin verilmiyor</string>
     <string name="engine_error">Motor hatası</string>
-    <string name="stockfish_engine">Stockfish</string>
+    <string name="stockfish_engine">AFGChess</string>
     <string name="cuckoochess_engine">CuckooChess</string>
     <string name="select_engine">Motoru seç</string>
     <string name="engine_options">Motor Seçenekleri</string>

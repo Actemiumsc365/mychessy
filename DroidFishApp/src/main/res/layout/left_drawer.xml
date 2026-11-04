@@ -6,5 +6,6 @@
     android:layout_height="match_parent"
     android:layout_gravity="left"
     android:choiceMode="singleChoice"
-    android:background="#F0282828"
+    android:background="@drawable/afg_drawer_wood"
+    android:divider="#55D4AF37"
     android:dividerHeight="1dp" />

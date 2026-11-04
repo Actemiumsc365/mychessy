@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">Mastermind Chess</string>
+    <string name="app_name">AFGChess</string>
     <string name="engine_hash_default">64</string>
     <string name="moves_per_session_default">60</string>
     <string name="time_control_default">120000</string>
@@ -217,7 +217,7 @@ Als uw telefoon op batterij werkt is het aan te raden om deze instellingen te wi
     <string name="engine_name_in_use">Engine naam in gebruik</string>
     <string name="slash_not_allowed">Teken niet toegestaan</string>
     <string name="engine_error">Engine fout</string>
-    <string name="stockfish_engine">Stockfish</string>
+    <string name="stockfish_engine">AFGChess</string>
     <string name="cuckoochess_engine">CuckooChess</string>
     <string name="select_engine">Selecteer engine</string>
     <string name="engine_options">Engine instellingen</string>

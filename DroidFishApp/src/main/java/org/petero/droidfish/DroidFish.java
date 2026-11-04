@@ -1222,6 +1222,10 @@ public class DroidFish extends Activity
         pgnOptions.exp.playerAction = settings.getBoolean("exportPlayerAction", false);
         pgnOptions.exp.clockInfo    = settings.getBoolean("exportTime",         false);
 
+        if (!settings.getBoolean("afgRoyalWoodApplied", false)) {
+            ColorTheme.instance().setTheme(settings, ColorTheme.ROYAL_WOOD);
+            settings.edit().putBoolean("afgRoyalWoodApplied", true).apply();
+        }
         ColorTheme.instance().readColors(settings);
         PieceSet.instance().readPrefs(settings);
         cb.setColors();
@@ -1240,7 +1244,13 @@ public class DroidFish extends Activity
 
     private void overrideViewAttribs() {
         Util.overrideViewAttribs(findViewById(R.id.main));
-        int foreground = ColorTheme.instance().getColor(ColorTheme.FONT_FOREGROUND);
+        boolean royalWood = settings.getInt("selectedColorTheme", -1) == ColorTheme.ROYAL_WOOD;
+        View titleBar = (View) findViewById(R.id.first_title_line).getParent();
+        if (royalWood)
+            titleBar.setBackgroundResource(R.drawable.afg_wood_bar);
+        else
+            titleBar.setBackground(null);
+        int foreground = royalWood ? 0xFFF3D9A4 : ColorTheme.instance().getColor(ColorTheme.FONT_FOREGROUND);
         for (int viewId : new int[] { R.id.white_clock, R.id.title_text, R.id.black_clock,
                 R.id.white_pieces, R.id.title_text_summary, R.id.black_pieces }) {
             TextView title = findViewById(viewId);
@@ -1484,6 +1494,8 @@ public class DroidFish extends Activity
         ANALYSIS,
         PLAY_WHITE,
         PLAY_BLACK,
+        TWO_PLAYERS,
+        ONLINE,
         SET_STRENGTH,
         EDIT_BOARD,
         YOUR_BOARD,
@@ -1510,6 +1522,8 @@ public class DroidFish extends Activity
             new DrawerItem(DrawerItemId.NEW_GAME, R.string.option_new_game),
             new DrawerItem(DrawerItemId.PLAY_WHITE, R.string.play_white),
             new DrawerItem(DrawerItemId.PLAY_BLACK, R.string.play_black),
+            new DrawerItem(DrawerItemId.TWO_PLAYERS, R.string.two_players),
+            new DrawerItem(DrawerItemId.ONLINE, R.string.online_play),
             new DrawerItem(DrawerItemId.SET_STRENGTH, R.string.practice_level),
             new DrawerItem(DrawerItemId.ANALYSIS, R.string.analysis),
             new DrawerItem(DrawerItemId.YOUR_BOARD, R.string.your_board),
@@ -1568,6 +1582,13 @@ public class DroidFish extends Activity
         case PLAY_BLACK:
             newGameMode(GameMode.PLAYER_BLACK);
             setBoardFlip(true);
+            break;
+        case TWO_PLAYERS:
+            newGameMode(GameMode.TWO_PLAYERS);
+            startNewGame(2);
+            break;
+        case ONLINE:
+            startActivity(new Intent(DroidFish.this, org.petero.droidfish.online.OnlinePlay.class));
             break;
         case MASTERMIND:
             requestHint();
@@ -2880,8 +2901,9 @@ public class DroidFish extends Activity
             Util.setFullScreenMode(this, settings);
         });
         builder.setView(fullscreen);
-        final int[] themeIds = { 5, 6, 3, 7 };
-        String[] names = { getString(R.string.theme_classic), getString(R.string.theme_forest),
+        final int[] themeIds = { ColorTheme.ROYAL_WOOD, 5, 6, 3, 7 };
+        String[] names = { getString(R.string.theme_royal_wood),
+                getString(R.string.theme_classic), getString(R.string.theme_forest),
                 getString(R.string.theme_graphite), getString(R.string.theme_paper) };
         ArrayAdapter<String> themes = new ArrayAdapter<String>(this,
                 android.R.layout.simple_list_item_single_choice, names) {

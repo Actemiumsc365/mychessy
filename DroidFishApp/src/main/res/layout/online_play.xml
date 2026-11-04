@@ -1,0 +1,136 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#FF2A170C"
+    android:orientation="vertical">
+
+    <TextView
+        android:id="@+id/online_title"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="@drawable/afg_wood_bar"
+        android:gravity="center"
+        android:padding="10dp"
+        android:text="@string/online_title"
+        android:textColor="#FFF3D9A4"
+        android:textSize="20sp"
+        android:textStyle="bold" />
+
+    <TextView
+        android:id="@+id/online_status"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center"
+        android:minLines="2"
+        android:padding="8dp"
+        android:textColor="#FFEED2A4"
+        android:textSize="15sp" />
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginLeft="8dp"
+        android:layout_marginRight="8dp"
+        android:background="@drawable/afg_player_card"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:padding="8dp">
+
+        <TextView
+            android:id="@+id/online_top_name"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:singleLine="true"
+            android:ellipsize="end"
+            android:textColor="#FFF3D9A4"
+            android:textSize="16sp" />
+
+        <TextView
+            android:id="@+id/online_top_clock"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:fontFamily="monospace"
+            android:textColor="#FFFFF8EC"
+            android:textSize="20sp"
+            android:textStyle="bold" />
+    </LinearLayout>
+
+    <org.petero.droidfish.ChessBoardPlay
+        android:id="@+id/online_board"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_margin="6dp"
+        android:layout_weight="1" />
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginLeft="8dp"
+        android:layout_marginRight="8dp"
+        android:background="@drawable/afg_player_card"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:padding="8dp">
+
+        <TextView
+            android:id="@+id/online_bottom_name"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:singleLine="true"
+            android:ellipsize="end"
+            android:textColor="#FFF3D9A4"
+            android:textSize="16sp" />
+
+        <TextView
+            android:id="@+id/online_bottom_clock"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:fontFamily="monospace"
+            android:textColor="#FFFFF8EC"
+            android:textSize="20sp"
+            android:textStyle="bold" />
+    </LinearLayout>
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:padding="6dp">
+
+        <Button
+            android:id="@+id/online_action1"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_margin="4dp"
+            android:layout_weight="1"
+            android:background="@drawable/afg_button_gold"
+            android:textAllCaps="false"
+            android:textColor="#FF2A170C"
+            android:textStyle="bold" />
+
+        <Button
+            android:id="@+id/online_action2"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_margin="4dp"
+            android:layout_weight="1"
+            android:background="@drawable/afg_button_gold"
+            android:textAllCaps="false"
+            android:textColor="#FF2A170C"
+            android:textStyle="bold" />
+
+        <Button
+            android:id="@+id/online_action3"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_margin="4dp"
+            android:layout_weight="1"
+            android:background="@drawable/afg_button_gold"
+            android:textAllCaps="false"
+            android:textColor="#FF2A170C"
+            android:textStyle="bold" />
+    </LinearLayout>
+</LinearLayout>

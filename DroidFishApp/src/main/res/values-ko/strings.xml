@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">Mastermind Chess</string>
+    <string name="app_name">AFGChess</string>
     <string name="engine_hash_default">64</string>
     <string name="moves_per_session_default">60</string>
     <string name="time_control_default">120000</string>
@@ -221,7 +221,7 @@ DroidFish는 백그라운드에 실행 중인 상태에서 다음과 같이 설�
     <string name="engine_name_in_use">사용하고 있는 엔진 이름</string>
     <string name="slash_not_allowed">문자 / 허용되지 않음</string>
     <string name="engine_error">엔진 오류</string>
-    <string name="stockfish_engine">Stockfish</string>
+    <string name="stockfish_engine">AFGChess</string>
     <string name="cuckoochess_engine">CuckooChess</string>
     <string name="select_engine">엔진 선택</string>
     <string name="engine_options">엔진 옵션</string>

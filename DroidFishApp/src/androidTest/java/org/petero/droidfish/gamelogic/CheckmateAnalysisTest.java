@@ -192,6 +192,30 @@ public class CheckmateAnalysisTest extends TestCase {
         }
     }
 
+    public void testBackgroundPauseStopsEngineAndResumeRestartsAnalysis() throws Exception {
+        java.lang.reflect.Field playerField = DroidChessController.class.getDeclaredField("computerPlayer");
+        playerField.setAccessible(true);
+        java.lang.reflect.Field requestField = DroidComputerPlayer.class.getDeclaredField("searchRequest");
+        requestField.setAccessible(true);
+        String fen = controller.getFEN();
+        controller.startGame();
+        await(fen, false);
+        DroidComputerPlayer player = (DroidComputerPlayer)playerField.get(controller);
+
+        controller.setGuiPaused(true);
+        synchronized (player) {
+            assertNull(requestField.get(player));
+        }
+        controller.makeHumanMove(TextIO.stringToMove(TextIO.readFEN(fen), "e4"), false);
+        synchronized (player) {
+            assertNull("No search may start while paused", requestField.get(player));
+        }
+
+        updates.clear();
+        controller.setGuiPaused(false);
+        assertNotNull(await(controller.getFEN(), false).evaluation);
+    }
+
     public void testStrengthChosenBeforeEngineStartupIsRetained() throws Exception {
         controller.shutdownEngine();
         controller.setStrength(true, PracticeLevel.INTERMEDIATE.elo);

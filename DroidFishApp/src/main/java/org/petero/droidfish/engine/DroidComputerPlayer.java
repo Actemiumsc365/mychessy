@@ -845,6 +845,8 @@ public class DroidComputerPlayer {
                         engineName += " ";
                     engineName += tokens[i];
                 }
+                if (engineName.startsWith("Stockfish"))
+                    engineName = "AFGChess"; // Display brand; Stockfish credit stays in About.
                 listener.notifyEngineName(engineName);
             }
         } else if (tokens[0].equals("option")) {

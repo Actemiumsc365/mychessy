@@ -72,7 +72,8 @@ public class ColorTheme {
         R.string.colortheme_scid_default,
         R.string.colortheme_scid_brown,
         R.string.colortheme_scid_green,
-        R.string.theme_paper
+        R.string.theme_paper,
+        R.string.theme_royal_wood
     };
     private final static String[][] themeColors = {
     { // Original
@@ -114,8 +115,15 @@ public class ColorTheme {
         "#FF8D9A9C", "#FFF3F5F5", "#FFD64632", "#FF172327", "#FFFFFFFF", "#FFB8D7D1",
         "#D000796B", "#D0C53D32", "#9000796B", "#90C53D32", "#6000796B", "#60C53D32", "#4000796B", "#40C53D32",
         "#FF24383C", "#FF596E72", "#FF397269", "#FF172327", "#FFFAFCFC"
+    },
+    { // Royal Wood
+        "#FF9C6B3F", "#FFEED2A4", "#FFD4AF37", "#FF1B120B", "#FFFFF8EC", "#FFCDA349",
+        "#D0B8860B", "#D08B1E2E", "#90B8860B", "#908B1E2E", "#60B8860B", "#608B1E2E", "#40B8860B", "#408B1E2E",
+        "#FF5A3A1F", "#FF7B4B26", "#FF8B5A2B", "#FF3A2210", "#FFF7EAD3"
     }
     };
+
+    public final static int ROYAL_WOOD = 8;
 
     static int themeColor(int themeType, int colorType) {
         return Color.parseColor(themeColors[themeType][colorType]);
