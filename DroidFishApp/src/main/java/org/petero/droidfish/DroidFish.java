@@ -39,6 +39,7 @@ import java.util.TreeMap;
 
 import org.petero.droidfish.activities.CPUWarning;
 import org.petero.droidfish.activities.EditBoard;
+import org.petero.droidfish.activities.YourBoard;
 import org.petero.droidfish.activities.EditOptions;
 import org.petero.droidfish.activities.EditPGNLoad;
 import org.petero.droidfish.activities.EditPGNSave;
@@ -1485,6 +1486,7 @@ public class DroidFish extends Activity
         PLAY_BLACK,
         SET_STRENGTH,
         EDIT_BOARD,
+        YOUR_BOARD,
         SETTINGS,
         FILE_MENU,
         MASTERMIND,
@@ -1510,6 +1512,7 @@ public class DroidFish extends Activity
             new DrawerItem(DrawerItemId.PLAY_BLACK, R.string.play_black),
             new DrawerItem(DrawerItemId.SET_STRENGTH, R.string.practice_level),
             new DrawerItem(DrawerItemId.ANALYSIS, R.string.analysis),
+            new DrawerItem(DrawerItemId.YOUR_BOARD, R.string.your_board),
             new DrawerItem(DrawerItemId.MASTERMIND, R.string.mastermind_training),
             new DrawerItem(DrawerItemId.COACH, R.string.coach_and_games),
             new DrawerItem(DrawerItemId.SET_COLOR_THEME, R.string.appearance),
@@ -1579,6 +1582,11 @@ public class DroidFish extends Activity
         case EDIT_BOARD:
             startEditBoard(ctrl.getFEN());
             break;
+        case YOUR_BOARD: {
+            Intent i = new Intent(DroidFish.this, YourBoard.class);
+            startActivityForResult(i, RESULT_YOUR_BOARD);
+            break;
+        }
         case SETTINGS: {
             Intent i = new Intent(DroidFish.this, Preferences.class);
             startActivityForResult(i, RESULT_SETTINGS);
@@ -1633,6 +1641,7 @@ public class DroidFish extends Activity
     static private final int RESULT_OI_FEN_LOAD =  8;
     static private final int RESULT_GET_FEN     =  9;
     static private final int RESULT_EDITOPTIONS = 10;
+    static private final int RESULT_YOUR_BOARD  = 11;
 
     private void startEditBoard(String fen) {
         Intent i = new Intent(DroidFish.this, EditBoard.class);
@@ -1653,6 +1662,18 @@ public class DroidFish extends Activity
                     ctrl.setFENOrPGN(fen, true);
                     setBoardFlip(false);
                 } catch (ChessParseError ignore) {
+                }
+            }
+            break;
+        case RESULT_YOUR_BOARD:
+            if (resultCode == RESULT_OK) {
+                try {
+                    // Switch mode first so no computer player starts moving in the new position.
+                    newGameMode(GameMode.ANALYSIS);
+                    ctrl.setFENOrPGN(data.getAction(), true);
+                    setBoardFlip(false);
+                } catch (ChessParseError e) {
+                    DroidFishApp.toast(getParseErrString(e), Toast.LENGTH_SHORT);
                 }
             }
             break;

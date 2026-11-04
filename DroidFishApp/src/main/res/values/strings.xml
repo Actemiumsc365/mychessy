@@ -2,6 +2,15 @@
 <resources>
     <string name="app_name">Mastermind Chess</string>
     <string name="appearance">Appearance</string>
+    <string name="your_board">Your Board</string>
+    <string name="your_board_analyze">Analyze</string>
+    <string name="your_board_help">Drag any piece to any square. Drag a piece off the board to remove it. Drag a piece from the row below the board to add it.</string>
+    <string name="random_position">Random Position</string>
+    <string name="shuffle_pieces">Shuffle Pieces Randomly</string>
+    <string name="your_board_random_failed">Could not place these pieces in a legal position</string>
+    <string name="your_board_no_moves">Side to move has no legal moves (checkmate or stalemate)</string>
+    <string name="your_board_white_to_move">White to move</string>
+    <string name="your_board_black_to_move">Black to move</string>
     <string name="coach_and_games">Coach &amp; games</string>
     <string name="hint">Hint</string>
     <string name="show_hint">Show hint</string>

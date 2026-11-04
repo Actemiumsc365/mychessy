@@ -101,6 +101,10 @@
                   android:label="@string/edit_board"
                   android:configChanges="orientation|screenSize|keyboardHidden|screenLayout|smallestScreenSize">
         </activity>
+        <activity android:name=".activities.YourBoard"
+                  android:label="@string/your_board"
+                  android:configChanges="orientation|screenSize|keyboardHidden|screenLayout|smallestScreenSize">
+        </activity>
         <activity android:name=".activities.EditPGNLoad"
                   android:label="@string/load_game_title"
                   android:configChanges="orientation|screenSize|keyboardHidden|screenLayout|smallestScreenSize">
